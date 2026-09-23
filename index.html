@@ -205,18 +205,16 @@
         overflow: hidden;
       }
 
+      .pdf-render-surface {
+        position: relative;
+        flex: 0 0 auto;
+      }
+
       .pdf-render-surface > canvas {
         display: block;
-
         position: absolute;
-        top: 0;
-        left: 0;
-
-        width: 100% !important;
-        height: 100% !important;
-
+        inset: 0;
         z-index: 1;
-
         pointer-events: none;
       }
 
@@ -226,54 +224,27 @@
         height: 100%;
       }
 
-      .page-content > canvas {
-        display: block;
-        margin: 0 auto;
-
-        max-width: 100%;
-        height: auto;
-
-        position: relative;
-        z-index: 1;
-      }
-
       .textLayer {
         position: absolute;
-
-        left: 0;
-        top: 0;
-        right: 0;
-        bottom: 0;
-
+        inset: 0;
         overflow: hidden;
-
         opacity: 1;
-
         line-height: 1;
-
         text-align: initial;
-
         text-size-adjust: none;
         -webkit-text-size-adjust: none;
         -moz-text-size-adjust: none;
-
         forced-color-adjust: none;
-
         z-index: 2;
-
         pointer-events: auto;
       }
 
       .textLayer span,
       .textLayer br {
         color: transparent;
-
         position: absolute;
-
         white-space: pre;
-
         cursor: text;
-
         transform-origin: 0% 0%;
       }
 
@@ -281,13 +252,6 @@
         background: rgba(6, 182, 212, 0.35);
       }
 
-      .textLayer span {
-        position: absolute;
-        color: transparent;
-        white-space: pre;
-        cursor: text;
-        transform-origin: 0% 0%;
-      }
       .textLayer span::selection {
         background: rgba(6, 182, 212, 0.35);
       }
@@ -716,48 +680,6 @@
         pointer-events: auto;
       }
 
-      /* PDF Layout layers */
-      .pdf-page-container {
-        position: relative;
-        overflow: hidden;
-      }
-
-      .textLayer {
-        position: absolute;
-
-        top: 0;
-        left: 0;
-
-        width: 100%;
-        height: 100%;
-
-        z-index: 2;
-
-        overflow: hidden;
-
-        line-height: 1;
-
-        text-align: initial;
-
-        opacity: 1;
-
-        pointer-events: auto;
-      }
-
-      .textLayer span {
-        position: absolute;
-
-        color: transparent;
-
-        white-space: pre;
-
-        cursor: text;
-
-        transform-origin: 0% 0%;
-      }
-      .textLayer ::selection {
-        background: rgba(6, 182, 212, 0.35);
-      }
       /* Themes */
       .theme-dark-classic {
         background-color: #1e293b;
@@ -1787,6 +1709,8 @@
             scale,
           });
 
+          const textContent = await page.getTextContent();
+
           // One coordinate system for both canvas and text layer
           const surface = document.createElement("div");
           surface.className = "pdf-render-surface";
@@ -1823,12 +1747,13 @@
           textLayerDiv.style.height = `${viewport.height}px`;
 
           await pdfjsLib.renderTextLayer({
-            textContentSource: textContent,
+            textContent,
             container: textLayerDiv,
             viewport: viewport,
             textDivs: [],
           });
 
+          surface.appendChild(textLayerDiv);
           contentDiv.appendChild(surface);
         } catch (err) {
           console.error("PDF Render Error:", err);
