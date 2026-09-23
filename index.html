@@ -231,6 +231,7 @@
         opacity: 1;
         line-height: 1;
         text-align: initial;
+        transform-origin: 0 0;
         text-size-adjust: none;
         -webkit-text-size-adjust: none;
         -moz-text-size-adjust: none;
@@ -1722,11 +1723,14 @@
           const canvas = document.createElement("canvas");
           const context = canvas.getContext("2d");
 
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
+          const outputScale = window.devicePixelRatio || 1;
+          canvas.width = Math.floor(viewport.width * outputScale);
+          canvas.height = Math.floor(viewport.height * outputScale);
 
           canvas.style.width = `${viewport.width}px`;
           canvas.style.height = `${viewport.height}px`;
+
+          context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
 
           await page.render({
             canvasContext: context,
@@ -1827,8 +1831,8 @@
 
         if (elTooltipWord) elTooltipWord.textContent = cleanWord;
         const rect = selection.getRangeAt(0).getBoundingClientRect();
-        elWordTooltip.style.left = `${Math.max(10, rect.left + window.scrollX + rect.width / 2 - 80)}px`;
-        elWordTooltip.style.top = `${Math.max(10, rect.top + window.scrollY - 50)}px`;
+        elWordTooltip.style.left = `${Math.max(10, rect.left + rect.width / 2 - 80)}px`;
+        elWordTooltip.style.top = `${Math.max(10, rect.top - 50)}px`;
         elWordTooltip.classList.replace("hidden-bubble", "visible-bubble");
       });
 
