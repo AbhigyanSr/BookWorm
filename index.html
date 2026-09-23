@@ -205,6 +205,21 @@
         overflow: hidden;
       }
 
+      .pdf-render-surface > canvas {
+    display: block;
+
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100% !important;
+    height: 100% !important;
+
+    z-index: 1;
+
+    pointer-events: none;
+}
+
       .page-content {
         position: relative;
         width: 100%;
@@ -222,36 +237,39 @@
         z-index: 1;
       }
 
-      .textLayer {
-        position: absolute;
+     .textLayer {
+    position: absolute;
 
-        top: 0;
-        left: 0;
+    top: 0;
+    left: 0;
 
-        overflow: hidden;
+    width: 100%;
+    height: 100%;
 
-        width: 100%;
-        height: 100%;
+    overflow: hidden;
 
-        text-align: initial;
-        line-height: 1;
+    line-height: 1;
+    text-align: initial;
 
-        z-index: 2;
+    z-index: 2;
 
-        pointer-events: auto;
-      }
+    pointer-events: auto;
+}
 
-      .textLayer span {
-        color: transparent;
+     .textLayer span {
+    position: absolute;
 
-        position: absolute;
+    color: transparent;
 
-        white-space: pre;
+    white-space: pre;
 
-        cursor: text;
+    cursor: text;
 
-        transform-origin: 0% 0%;
-      }
+    transform-origin: 0% 0%;
+}
+.textLayer span::selection {
+    background: rgba(6, 182, 212, 0.35);
+}
 
       /* PDF CANVAS */
       .book-pdf-page {
@@ -385,20 +403,6 @@
       }
 
       /* PDF canvas */
-
-      .book-page canvas {
-        display: block;
-
-        width: 100% !important;
-        height: auto !important;
-
-        max-width: 100%;
-
-        border: none !important;
-        border-radius: 0 !important;
-
-        box-shadow: none !important;
-      }
 
       /* Center gutter */
 
@@ -1743,62 +1747,73 @@
         elProgressPercent.textContent = `${Math.round((pageIndex / AppState.totalPages) * 100)}%`;
       }
 
-      async function renderPdfPageToContainer(pageNum, container) {
-        const contentDiv = container.querySelector(".page-content");
-        contentDiv.innerHTML = "";
+     async function renderPdfPageToContainer(pageNum, container) {
+    const contentDiv = container.querySelector(".page-content");
+    contentDiv.innerHTML = "";
 
-        try {
-          const page = await AppState.pdfDoc.getPage(pageNum);
+    try {
+        const page = await AppState.pdfDoc.getPage(pageNum);
 
-          const availableWidth = contentDiv.clientWidth;
+        const availableWidth = contentDiv.clientWidth;
 
-          const baseViewport = page.getViewport({
-            scale: 1,
-          });
+        const baseViewport = page.getViewport({
+            scale: 1
+        });
 
-          const scale = availableWidth / baseViewport.width;
+        const scale = availableWidth / baseViewport.width;
 
-          const viewport = page.getViewport({
-            scale: scale,
-          });
+        const viewport = page.getViewport({
+            scale
+        });
 
-          const canvas = document.createElement("canvas");
-          const context = canvas.getContext("2d");
+        // One coordinate system for both canvas and text layer
+        const surface = document.createElement("div");
+        surface.className = "pdf-render-surface";
 
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
+        surface.style.width = `${viewport.width}px`;
+        surface.style.height = `${viewport.height}px`;
 
-          canvas.style.width = `${viewport.width}px`;
-          canvas.style.height = `${viewport.height}px`;
+        // PDF canvas
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
 
-          await page.render({
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        canvas.style.width = `${viewport.width}px`;
+        canvas.style.height = `${viewport.height}px`;
+
+        await page.render({
             canvasContext: context,
-            viewport: viewport,
-          }).promise;
+            viewport
+        }).promise;
 
-          contentDiv.appendChild(canvas);
+        surface.appendChild(canvas);
 
-          const textContent = await page.getTextContent();
+        // PDF text layer
+        const textContent = await page.getTextContent();
 
-          const textLayerDiv = document.createElement("div");
+        const textLayerDiv = document.createElement("div");
+        textLayerDiv.className = "textLayer";
 
-          textLayerDiv.className = "textLayer";
+        textLayerDiv.style.width = `${viewport.width}px`;
+        textLayerDiv.style.height = `${viewport.height}px`;
 
-          textLayerDiv.style.width = `${viewport.width}px`;
-          textLayerDiv.style.height = `${viewport.height}px`;
+        surface.appendChild(textLayerDiv);
 
-          pdfjsLib.renderTextLayer({
+        await pdfjsLib.renderTextLayer({
             textContentSource: textContent,
             container: textLayerDiv,
-            viewport: viewport,
-            textDivs: [],
-          });
+            viewport,
+            textDivs: []
+        }).promise;
 
-          contentDiv.appendChild(textLayerDiv);
-        } catch (err) {
-          console.error("PDF Render Error:", err);
-        }
-      }
+        contentDiv.appendChild(surface);
+
+    } catch (err) {
+        console.error("PDF Render Error:", err);
+    }
+}
       function animatePageTurn(direction, onComplete) {
         const leaf = document.getElementById("flippingLeaf");
         const leafContent = document.getElementById("flippingLeafContent");
