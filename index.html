@@ -249,6 +249,11 @@
         transform-origin: 0% 0%;
       }
 
+      .textLayer span.markedContent {
+        top: 0;
+        height: 0;
+      }
+
       .textLayer ::selection {
         background: rgba(6, 182, 212, 0.35);
       }
@@ -1730,11 +1735,13 @@
           canvas.style.width = `${viewport.width}px`;
           canvas.style.height = `${viewport.height}px`;
 
-          context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
-
           await page.render({
             canvasContext: context,
             viewport,
+            transform:
+              outputScale !== 1
+                ? [outputScale, 0, 0, outputScale, 0, 0]
+                : null,
           }).promise;
 
           surface.appendChild(canvas);
