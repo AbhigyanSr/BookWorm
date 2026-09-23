@@ -1408,843 +1408,842 @@
     </div>
 
     <script>
-                  const tooltipWidth = elWordTooltip.offsetWidth;
+      const tooltipWidth = elWordTooltip.offsetWidth;
 
-                  let left = rect.left + rect.width / 2 - tooltipWidth / 2;
-                  let top = rect.top - elWordTooltip.offsetHeight - 10;
+      let left = rect.left + rect.width / 2 - tooltipWidth / 2;
+      let top = rect.top - elWordTooltip.offsetHeight - 10;
 
-                  left = Math.max(
-                    10,
-                    Math.min(left, window.innerWidth - tooltipWidth - 10),
-                  );
+      left = Math.max(
+        10,
+        Math.min(left, window.innerWidth - tooltipWidth - 10),
+      );
 
-                  if (top < 10) {
-                    top = rect.bottom + 10;
-                  }
-
-                  elWordTooltip.style.left = `${left}px`;
-                  elWordTooltip.style.top = `${top}px`;
-                  const AppState = {
-                    currentPage: 1,
-                    totalPages: 2,
-                    isSpreadMode: true,
-                    theme: "dark-classic",
-                    docType: "sample",
-                    pdfDoc: null,
-                    rawFullText: "",
-                    paginatedPages: [],
-                    selectedWord: "",
-                    selectedContextSentence: "",
-                    analyzedData: null,
-                    apiKey: localStorage.getItem("gemini_api_key") || "",
-                    savedDeck: JSON.parse(localStorage.getItem("lexicon_deck") || "[]"),
-                    activeDeckIndex: 0,
-                  };
-
-                  const DEMO_PAGES = [
-                    `In modern digital architecture, ubiquitous algorithms silently direct human behavior across every sphere of life. The intellectual pursuit of understanding language and its foundational origins has captivated scholars throughout human history.\n\nTo examine the etymological roots of our communication is to peer into the ancient past—uncovering how Latin, Greek, and Proto-Indo-European roots evolved across centuries of trade, conquest, and cultural interchange. Readers who engage with texts at this level of depth experience a transformative shift in comprehension.`,
-                    `The ephemeral nature of spoken dialogue contrasts sharply with the enduring durability of written manuscripts. When an individual encounters an unfamiliar word within an intricate text, context provides the first vital clue to its intrinsic meaning.\n\nBy synthesizing context-aware definitions alongside classical root breakdowns, readers unlock a deeper lexicon. This interactive experience bridges the gap between passive consumption and active, profound textual mastery.`,
-                  ];
-
-                  const GENRE_PROFILES = {
-                    scifi: {
-                      theme: "scifi",
-                      label: "Sci-Fi / Quantum Thriller",
-                      icon: "🚀",
-                      keywords: [
-                        "quantum",
-                        "multiverse",
-                        "dimension",
-                        "box",
-                        "jason",
-                        "dark matter",
-                        "reality",
-                        "physics",
-                        "schrodinger",
-                        "superposition",
-                        "laboratory",
-                        "spaceship",
-                        "alien",
-                        "galaxy",
-                        "cyborg",
-                        "android",
-                        "interstellar",
-                        "timeline",
-                      ],
-                    },
-                    thriller: {
-                      theme: "dark-classic",
-                      label: "Thriller / Suspense",
-                      icon: "🕵️",
-                      keywords: [
-                        "murder",
-                        "blood",
-                        "detective",
-                        "gun",
-                        "kidnapped",
-                        "chase",
-                        "knife",
-                        "victim",
-                        "investigation",
-                        "police",
-                        "conspiracy",
-                        "stalker",
-                      ],
-                    },
-                    romance: {
-                      theme: "romance",
-                      label: "Romance",
-                      icon: "🌸",
-                      keywords: [
-                        "love",
-                        "kiss",
-                        "heart",
-                        "passion",
-                        "desire",
-                        "wedding",
-                        "lovers",
-                        "beloved",
-                        "affection",
-                      ],
-                    },
-                    fantasy: {
-                      theme: "fantasy",
-                      label: "Fantasy",
-                      icon: "🐉",
-                      keywords: [
-                        "dragon",
-                        "magic",
-                        "wizard",
-                        "sorcerer",
-                        "kingdom",
-                        "spell",
-                        "sword",
-                        "realm",
-                        "enchanted",
-                      ],
-                    },
-                    academic: {
-                      theme: "academic",
-                      label: "Academic",
-                      icon: "📚",
-                      keywords: [
-                        "hypothesis",
-                        "theorem",
-                        "methodology",
-                        "empirical",
-                        "citation",
-                        "research",
-                      ],
-                    },
-                  };
-
-                  const MOCK_DICTIONARY = {
-                    ubiquitous: {
-                      partOfSpeech: "adjective",
-                      phonetic: "/juːˈbɪk.wɪ.təs/",
-                      generalDefinition:
-                        "Present, appearing, or found everywhere at the same time; omnipresent.",
-                      contextMeaning:
-                        "In this sentence, it highlights how algorithms have become omnipresent in digital life.",
-                      etymology: {
-                        root: "Latin 'ubique' meaning 'everywhere'",
-                        history: "Coined in the mid-19th century.",
-                      },
-                      synonyms: ["omnipresent", "pervasive"],
-                      antonyms: ["rare"],
-                      toneRegister: "Formal",
-                    },
-                    ephemeral: {
-                      partOfSpeech: "adjective",
-                      phonetic: "/ɪˈfem.ər.əl/",
-                      generalDefinition: "Lasting for a very short time.",
-                      contextMeaning: "Emphasizes the fleeting quality of spoken speech.",
-                      etymology: {
-                        root: "Greek 'ephemeros'",
-                        history: "Originally referenced one-day fevers.",
-                      },
-                      synonyms: ["fleeting", "transitory"],
-                      antonyms: ["permanent"],
-                      toneRegister: "Literary",
-                    },
-                  };
-
-                  let elWordTooltip,
-                    elTooltipWord,
-                    elPageLeft,
-                    elPageRight,
-                    elPageLeftNum,
-                    elPageRightNum;
-                  let elInputPageNum,
-                    elTxtTotalPages,
-                    elPageRangeSlider,
-                    elProgressPercent,
-                    elBookSpread,
-                    elReactiveBg,
-                    elSidebarInsights;
-
-                  function initDOMCache() {
-                    elWordTooltip = document.getElementById("wordTooltip");
-                    elTooltipWord = document.getElementById("tooltipWord");
-                    elPageLeft = document.getElementById("pageLeft");
-                    elPageRight = document.getElementById("pageRight");
-                    elPageLeftNum = document.getElementById("pageLeftNum");
-                    elPageRightNum = document.getElementById("pageRightNum");
-                    elInputPageNum = document.getElementById("inputPageNum");
-                    elTxtTotalPages = document.getElementById("txtTotalPages");
-                    elPageRangeSlider = document.getElementById("pageRangeSlider");
-                    elProgressPercent = document.getElementById("progressPercent");
-                    elBookSpread = document.getElementById("bookSpread");
-                    elReactiveBg = document.getElementById("reactiveBg");
-                    elSidebarInsights = document.getElementById("sidebarInsights");
-                  }
-
-                  /* Pagination & Layout */
-                  function getPageContentMetrics() {
-                    const contentDiv = elPageLeft.querySelector(".page-content");
-                    return {
-                      availableWidth: contentDiv.clientWidth,
-                      availableHeight: Math.max(120, elPageLeft.clientHeight - 80),
-                    };
-                  }
-
-                  async function paginateRawText(rawText) {
-                    const { availableWidth, availableHeight } = getPageContentMetrics();
-                    if (!rawText || !rawText.trim()) return [[""]];
-
-                    const measurer = document.createElement("div");
-                    measurer.style.position = "absolute";
-                    measurer.style.visibility = "hidden";
-                    measurer.style.width = availableWidth + "px";
-                    measurer.className =
-                      "font-serif text-sm md:text-base leading-relaxed tracking-wide space-y-4";
-                    document.body.appendChild(measurer);
-
-                    const paragraphs = rawText
-                      .split(/\n\s*\n/)
-                      .map((p) => p.trim())
-                      .filter(Boolean);
-                    const pages = [];
-                    let currentPageParas = [];
-
-                    const commitPage = () => {
-                      pages.push(currentPageParas.length ? currentPageParas : [""]);
-                      currentPageParas = [];
-                      measurer.innerHTML = "";
-                    };
-
-                    for (const paragraph of paragraphs) {
-                      const words = paragraph.split(/\s+/).filter(Boolean);
-                      let startIdx = 0;
-                      while (startIdx < words.length) {
-                        const remaining = words.slice(startIdx);
-                        const testP = document.createElement("p");
-                        testP.className = "leading-relaxed mb-4 text-justify";
-                        measurer.appendChild(testP);
-
-                        const fits = (k) => {
-                          testP.textContent = remaining.slice(0, k).join(" ");
-                          return measurer.scrollHeight <= availableHeight;
-                        };
-
-                        let best;
-                        if (fits(remaining.length)) best = remaining.length;
-                        else {
-                          let lo = 0,
-                            hi = remaining.length;
-                          while (lo < hi) {
-                            const mid = Math.ceil((lo + hi) / 2);
-                            if (fits(mid)) lo = mid;
-                            else hi = mid - 1;
-                          }
-                          best = lo;
-                          fits(best);
-                        }
-
-                        if (best === 0) {
-                          measurer.removeChild(testP);
-                          if (currentPageParas.length === 0) {
-                            best = 1;
-                            currentPageParas.push(remaining[0]);
-                            startIdx++;
-                            commitPage();
-                            continue;
-                          }
-                          commitPage();
-                          continue;
-                        }
-
-                        currentPageParas.push(remaining.slice(0, best).join(" "));
-                        startIdx += best;
-                        if (startIdx < words.length) commitPage();
-                      }
-                    }
-                    if (currentPageParas.length) commitPage();
-                    document.body.removeChild(measurer);
-                    return pages.length ? pages : [[""]];
-                  }
-
-                  async function repaginateCurrentDocument() {
-                    if (AppState.docType !== "sample" && AppState.docType !== "txt") return;
-                    const progress =
-                      AppState.totalPages > 1
-                        ? (AppState.currentPage - 1) / (AppState.totalPages - 1)
-                        : 0;
-                    AppState.paginatedPages = await paginateRawText(AppState.rawFullText);
-                    AppState.totalPages = AppState.paginatedPages.length;
-                    AppState.currentPage = Math.max(
-                      1,
-                      Math.round(progress * (AppState.totalPages - 1)) + 1,
-                    );
-                    renderCurrentSpread();
-                  }
-
-                  async function renderCurrentSpread() {
-                    const pageIndex = AppState.currentPage;
-                    const isMobile = window.innerWidth < 768;
-                    const useSpread = AppState.isSpreadMode && !isMobile;
-
-                    document
-                      .getElementById("curlLeft")
-                      ?.classList.toggle("hidden", pageIndex <= 1);
-                    document
-                      .getElementById("curlRight")
-                      ?.classList.toggle("hidden", pageIndex >= AppState.totalPages);
-
-                    if (AppState.docType === "pdf") {
-                      AppState.totalPages = AppState.pdfDoc.numPages;
-                      await renderPdfPageToContainer(pageIndex, elPageLeft);
-                      elPageLeftNum.textContent = `Page ${pageIndex}`;
-
-                      if (useSpread && pageIndex < AppState.totalPages) {
-                        elPageRight.classList.remove("hidden");
-                        document.getElementById("bookSpine").classList.remove("hidden");
-                        await renderPdfPageToContainer(pageIndex + 1, elPageRight);
-                        elPageRightNum.textContent = `Page ${pageIndex + 1}`;
-                      } else {
-                        elPageRight.classList.add("hidden");
-                        document.getElementById("bookSpine").classList.add("hidden");
-                      }
-                    } else {
-                      const renderText = (container, paras) => {
-                        const div = container.querySelector(".page-content");
-                        div.innerHTML = "";
-                        (paras || []).forEach((t) => {
-                          const p = document.createElement("p");
-                          p.className = "leading-relaxed mb-4 text-justify";
-                          p.textContent = t;
-                          div.appendChild(p);
-                        });
-                      };
-
-                      renderText(elPageLeft, AppState.paginatedPages[pageIndex - 1]);
-                      elPageLeftNum.textContent = `Page ${pageIndex}`;
-
-                      if (useSpread && pageIndex < AppState.totalPages) {
-                        elPageRight.classList.remove("hidden");
-                        document.getElementById("bookSpine").classList.remove("hidden");
-                        renderText(elPageRight, AppState.paginatedPages[pageIndex]);
-                        elPageRightNum.textContent = `Page ${pageIndex + 1}`;
-                      } else {
-                        elPageRight.classList.add("hidden");
-                        document.getElementById("bookSpine").classList.add("hidden");
-                      }
-                    }
-
-                    elInputPageNum.value = pageIndex;
-                    elInputPageNum.max = AppState.totalPages;
-                    elTxtTotalPages.textContent = AppState.totalPages;
-                    elPageRangeSlider.max = AppState.totalPages;
-                    elPageRangeSlider.value = pageIndex;
-                    elProgressPercent.textContent = `${Math.round((pageIndex / AppState.totalPages) * 100)}%`;
-                  }
-
-                  async function renderPdfPageToContainer(pageNum, container) {
-                const contentDiv = container.querySelector('.page-content');
-                contentDiv.innerHTML = '';
-
-                try {
-                    const page = await AppState.pdfDoc.getPage(pageNum);
-
-                    const containerWidth = contentDiv.clientWidth;
-
-                    const unscaledViewport = page.getViewport({
-                        scale: 1
-                    });
-
-                    const scale = containerWidth / unscaledViewport.width;
-
-                    const viewport = page.getViewport({
-                        scale: scale
-                    });
-
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
-
-                    canvas.style.width = `${viewport.width}px`;
-                    canvas.style.height = `${viewport.height}px`;
-
-                    await page.render({
-                        canvasContext: context,
-                        viewport: viewport
-                    }).promise;
-
-                    contentDiv.appendChild(canvas);
-
-                    const textContent = await page.getTextContent();
-
-                    const textLayerDiv = document.createElement('div');
-                    textLayerDiv.className = 'textLayer';
-
-                    textLayerDiv.style.width = `${viewport.width}px`;
-                    textLayerDiv.style.height = `${viewport.height}px`;
-
-                    pdfjsLib.renderTextLayer({
-                        textContentSource: textContent,
-                        container: textLayerDiv,
-                        viewport: viewport,
-                        textDivs: []
-                    });
-
-                    contentDiv.appendChild(textLayerDiv);
-
-                } catch (err) {
-                    console.error("PDF Render Error:", err);
-                }
-            }
-                  function animatePageTurn(direction, onComplete) {
-                    const leaf = document.getElementById("flippingLeaf");
-                    const leafContent = document.getElementById("flippingLeafContent");
-                    const spreadContainer = document.querySelector(
-                      ".book-spread-container",
-                    );
-
-                    leaf.className = `flipping-leaf ${direction === "next" ? "flip-right-to-left" : "flip-left-to-right"} theme-${AppState.theme}`;
-                    leafContent.innerHTML = (
-                      direction === "next" ? elPageRight : elPageLeft
-                    ).querySelector(".page-content").innerHTML;
-
-                    leaf.classList.remove("hidden");
-                    if (spreadContainer) spreadContainer.classList.add("is-turning");
-                    shiftAmbientBgOnFlip();
-
-                    let swapped = false;
-                    setTimeout(() => {
-                      if (!swapped) {
-                        swapped = true;
-                        onComplete();
-                      }
-                    }, 500);
-                    setTimeout(() => {
-                      if (!swapped) {
-                        swapped = true;
-                        onComplete();
-                      }
-                      leaf.classList.add("hidden");
-                      if (spreadContainer) spreadContainer.classList.remove("is-turning");
-                    }, 950);
-                  }
-
-                  function shiftAmbientBgOnFlip() {
-                    const a1 = document.getElementById("glowAura1"),
-                      a2 = document.getElementById("glowAura2");
-                    if (a1 && a2) {
-                      a1.style.transform = `scale(1.25) translate(${Math.random() * 40 - 20}px, ${Math.random() * 40 - 20}px)`;
-                      a2.style.transform = `scale(0.85) translate(${Math.random() * 40 - 20}px, ${Math.random() * 40 - 20}px)`;
-                      setTimeout(() => {
-                        a1.style.transform = "";
-                        a2.style.transform = "";
-                      }, 1200);
-                    }
-                  }
-
-                  /* Word Selection & Gemini API */
-                  document.addEventListener("selectionchange", () => {
-                    if (!elWordTooltip) return;
-                    const selection = window.getSelection();
-                    if (!selection || selection.isCollapsed) return hideTooltip();
-
-                    const rawText = selection.toString().trim();
-                    if (!rawText || rawText.length > 40 || /\s/.test(rawText)) return;
-                    const cleanWord = rawText.replace(/[^a-zA-Z0-9'-]/g, "");
-                    if (!cleanWord) return;
-
-                    AppState.selectedWord = cleanWord;
-                    const fullText =
-                      selection.getRangeAt(0).startContainer.textContent || "";
-                    const sentences = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
-                    const match = sentences.find((s) => s.includes(cleanWord));
-                    AppState.selectedContextSentence = match
-                      ? match.trim()
-                      : fullText.slice(0, 150).trim();
-
-                    if (elTooltipWord) elTooltipWord.textContent = cleanWord;
-                    const rect = selection.getRangeAt(0).getBoundingClientRect();
-                    elWordTooltip.style.left = `${Math.max(10, rect.left + window.scrollX + rect.width / 2 - 80)}px`;
-                    elWordTooltip.style.top = `${Math.max(10, rect.top + window.scrollY - 50)}px`;
-                    elWordTooltip.classList.replace("hidden-bubble", "visible-bubble");
-                  });
-
-                  function hideTooltip() {
-                    elWordTooltip?.classList.replace("visible-bubble", "hidden-bubble");
-                  }
-
-                  async function analyzeSelectedWord() {
-                    hideTooltip();
-                    const word = AppState.selectedWord;
-                    const contextSentence = AppState.selectedContextSentence;
-                    if (!word) return;
-
-                    elSidebarInsights.classList.remove("translate-x-full");
-                    document.getElementById("activeWordTitle").textContent = word;
-                    document.getElementById("activeSentenceContext").textContent =
-                      `"${contextSentence}"`;
-                    document.getElementById("activeGeneralDefinition").textContent =
-                      "Analyzing lexical context...";
-
-                    let data = null;
-                    if (AppState.apiKey) {
-                      try {
-                        const response = await fetch(
-                          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${AppState.apiKey}`,
-                          {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              contents: [
-                                {
-                                  parts: [
-                                    {
-                                      text: `Analyze "${word}" in context: "${contextSentence}". Return JSON: partOfSpeech, phonetic, generalDefinition, contextMeaning, etymology {root, history}, synonyms[], antonyms[], toneRegister.`,
-                                    },
-                                  ],
-                                },
-                              ],
-                              systemInstruction: {
-                                parts: [
-                                  {
-                                    text: "You are a linguistic scholar. Return strict JSON.",
-                                  },
-                                ],
-                              },
-                              generationConfig: { responseMimeType: "application/json" },
-                            }),
-                          },
-                        );
-                        data = JSON.parse(
-                          (await response.json()).candidates[0].content.parts[0].text,
-                        );
-                      } catch (err) {
-                        console.warn("API failed", err);
-                      }
-                    }
-
-                    if (!data) {
-                      data = MOCK_DICTIONARY[word.toLowerCase()] || {
-                        partOfSpeech: "unknown",
-                        phonetic: `/${word.toLowerCase()}/`,
-                        generalDefinition: `Definition of ${word}.`,
-                        contextMeaning: `Meaning in this specific text.`,
-                        etymology: {
-                          root: "Unknown origin",
-                          history: "Tracing back through texts.",
-                        },
-                        synonyms: ["related"],
-                        antonyms: [],
-                        toneRegister: "General",
-                      };
-                    }
-
-                    AppState.analyzedData = data;
-                    document.getElementById("activePartOfSpeech").textContent =
-                      data.partOfSpeech || "word";
-                    document.getElementById("activePhonetic").textContent =
-                      data.phonetic || "";
-                    document.getElementById("activeContextMeaning").textContent =
-                      data.contextMeaning || data.generalDefinition;
-                    document.getElementById("activeGeneralDefinition").textContent =
-                      data.generalDefinition;
-                    document.getElementById("activeEtymologyRoot").textContent =
-                      data.etymology?.root || "N/A";
-                    document.getElementById("activeEtymologyHistory").textContent =
-                      data.etymology?.history || "N/A";
-                    document.getElementById("activeToneRegister").textContent =
-                      data.toneRegister || "General";
-
-                    const fillTags = (id, arr) => {
-                      const el = document.getElementById(id);
-                      el.innerHTML = "";
-                      (arr || []).forEach((t) => {
-                        const span = document.createElement("span");
-                        span.className = "px-2 py-0.5 rounded bg-slate-800 text-slate-300";
-                        span.textContent = t;
-                        el.appendChild(span);
-                      });
-                    };
-                    fillTags("activeSynonyms", data.synonyms);
-                    fillTags("activeAntonyms", data.antonyms);
-                  }
-
-                  /* Themes & Actions */
-                  async function detectAndApplyBookTheme() {
-                    const badge = document.getElementById("detectedMoodTag");
-                    if (badge) {
-                      badge.classList.remove("hidden");
-                      badge.textContent = "🔎 Scanning book keywords...";
-                    }
-
-                    let text = "";
-                    if (AppState.docType === "pdf" && AppState.pdfDoc) {
-                      for (let i = 1; i <= Math.min(AppState.pdfDoc.numPages, 20); i++) {
-                        const content = await (
-                          await AppState.pdfDoc.getPage(i)
-                        ).getTextContent();
-                        text += content.items.map((it) => it.str).join(" ") + " ";
-                      }
-                    } else text = AppState.rawFullText || DEMO_PAGES.join(" ");
-
-                    const lower = text.toLowerCase();
-                    let matchedGenre = null,
-                      maxScore = 0;
-
-                    Object.entries(GENRE_PROFILES).forEach(([key, profile]) => {
-                      let score = 0;
-                      profile.keywords.forEach((kw) => {
-                        const m = lower.match(new RegExp(`\\b${kw}\\b`, "gi"));
-                        if (m) score += m.length;
-                      });
-                      if (score > maxScore) {
-                        maxScore = score;
-                        matchedGenre = profile;
-                      }
-                    });
-
-                    if (matchedGenre && maxScore >= 3) {
-                      applyTheme(matchedGenre.theme);
-                      if (badge)
-                        badge.textContent = `${matchedGenre.icon} Auto-detected: ${matchedGenre.label}`;
-                    } else {
-                      applyTheme("dark-classic");
-                      if (badge) badge.textContent = `🎨 Defaulting to Classic Dark Theme`;
-                    }
-                  }
-
-                  function applyTheme(themeName) {
-          AppState.theme = themeName;
-
-          elBookSpread.className =
-              `book-spread-container theme-${themeName}`;
+      if (top < 10) {
+        top = rect.bottom + 10;
       }
 
-                  function renderFlashcard() {
-                    if (!AppState.savedDeck.length) return;
-                    const item = AppState.savedDeck[AppState.activeDeckIndex];
-                    document.getElementById("deckWord").textContent = item.word;
-                    document.getElementById("deckPhonetic").textContent = item.phonetic;
-                    document.getElementById("deckMeaning").textContent = item.meaning;
-                    document.getElementById("deckEtym").textContent = item.etymology;
-                    document.getElementById("deckCounter").textContent =
-                      `${AppState.activeDeckIndex + 1} / ${AppState.savedDeck.length}`;
-                    document.getElementById("cardFront").classList.remove("hidden");
-                    document.getElementById("cardBack").classList.add("hidden");
-                  }
+      elWordTooltip.style.left = `${left}px`;
+      elWordTooltip.style.top = `${top}px`;
+      const AppState = {
+        currentPage: 1,
+        totalPages: 2,
+        isSpreadMode: true,
+        theme: "dark-classic",
+        docType: "sample",
+        pdfDoc: null,
+        rawFullText: "",
+        paginatedPages: [],
+        selectedWord: "",
+        selectedContextSentence: "",
+        analyzedData: null,
+        apiKey: localStorage.getItem("gemini_api_key") || "",
+        savedDeck: JSON.parse(localStorage.getItem("lexicon_deck") || "[]"),
+        activeDeckIndex: 0,
+      };
 
-                  /* Initialization */
-                  window.addEventListener("DOMContentLoaded", async () => {
-                    initDOMCache();
-                    AppState.rawFullText = DEMO_PAGES.join("\n\n");
-                    await repaginateCurrentDocument();
-                    detectAndApplyBookTheme();
+      const DEMO_PAGES = [
+        `In modern digital architecture, ubiquitous algorithms silently direct human behavior across every sphere of life. The intellectual pursuit of understanding language and its foundational origins has captivated scholars throughout human history.\n\nTo examine the etymological roots of our communication is to peer into the ancient past—uncovering how Latin, Greek, and Proto-Indo-European roots evolved across centuries of trade, conquest, and cultural interchange. Readers who engage with texts at this level of depth experience a transformative shift in comprehension.`,
+        `The ephemeral nature of spoken dialogue contrasts sharply with the enduring durability of written manuscripts. When an individual encounters an unfamiliar word within an intricate text, context provides the first vital clue to its intrinsic meaning.\n\nBy synthesizing context-aware definitions alongside classical root breakdowns, readers unlock a deeper lexicon. This interactive experience bridges the gap between passive consumption and active, profound textual mastery.`,
+      ];
 
-                    // Nav Listeners
-                    const goNext = () => {
-                      if (AppState.currentPage < AppState.totalPages)
-                        animatePageTurn("next", () => {
-                          AppState.currentPage += AppState.isSpreadMode ? 2 : 1;
-                          renderCurrentSpread();
-                        });
-                    };
-                    const goPrev = () => {
-                      if (AppState.currentPage > 1)
-                        animatePageTurn("prev", () => {
-                          AppState.currentPage -= AppState.isSpreadMode ? 2 : 1;
-                          renderCurrentSpread();
-                        });
-                    };
+      const GENRE_PROFILES = {
+        scifi: {
+          theme: "scifi",
+          label: "Sci-Fi / Quantum Thriller",
+          icon: "🚀",
+          keywords: [
+            "quantum",
+            "multiverse",
+            "dimension",
+            "box",
+            "jason",
+            "dark matter",
+            "reality",
+            "physics",
+            "schrodinger",
+            "superposition",
+            "laboratory",
+            "spaceship",
+            "alien",
+            "galaxy",
+            "cyborg",
+            "android",
+            "interstellar",
+            "timeline",
+          ],
+        },
+        thriller: {
+          theme: "dark-classic",
+          label: "Thriller / Suspense",
+          icon: "🕵️",
+          keywords: [
+            "murder",
+            "blood",
+            "detective",
+            "gun",
+            "kidnapped",
+            "chase",
+            "knife",
+            "victim",
+            "investigation",
+            "police",
+            "conspiracy",
+            "stalker",
+          ],
+        },
+        romance: {
+          theme: "romance",
+          label: "Romance",
+          icon: "🌸",
+          keywords: [
+            "love",
+            "kiss",
+            "heart",
+            "passion",
+            "desire",
+            "wedding",
+            "lovers",
+            "beloved",
+            "affection",
+          ],
+        },
+        fantasy: {
+          theme: "fantasy",
+          label: "Fantasy",
+          icon: "🐉",
+          keywords: [
+            "dragon",
+            "magic",
+            "wizard",
+            "sorcerer",
+            "kingdom",
+            "spell",
+            "sword",
+            "realm",
+            "enchanted",
+          ],
+        },
+        academic: {
+          theme: "academic",
+          label: "Academic",
+          icon: "📚",
+          keywords: [
+            "hypothesis",
+            "theorem",
+            "methodology",
+            "empirical",
+            "citation",
+            "research",
+          ],
+        },
+      };
 
-                    document
-                      .getElementById("btnNextPage")
-                      .addEventListener("click", goNext);
-                    document.getElementById("curlRight")?.addEventListener("click", goNext);
-                    document
-                      .getElementById("btnPrevPage")
-                      .addEventListener("click", goPrev);
-                    document.getElementById("curlLeft")?.addEventListener("click", goPrev);
-                    document.addEventListener("keydown", (e) => {
-                      if (e.key === "ArrowRight") goNext();
-                      if (e.key === "ArrowLeft") goPrev();
-                    });
+      const MOCK_DICTIONARY = {
+        ubiquitous: {
+          partOfSpeech: "adjective",
+          phonetic: "/juːˈbɪk.wɪ.təs/",
+          generalDefinition:
+            "Present, appearing, or found everywhere at the same time; omnipresent.",
+          contextMeaning:
+            "In this sentence, it highlights how algorithms have become omnipresent in digital life.",
+          etymology: {
+            root: "Latin 'ubique' meaning 'everywhere'",
+            history: "Coined in the mid-19th century.",
+          },
+          synonyms: ["omnipresent", "pervasive"],
+          antonyms: ["rare"],
+          toneRegister: "Formal",
+        },
+        ephemeral: {
+          partOfSpeech: "adjective",
+          phonetic: "/ɪˈfem.ər.əl/",
+          generalDefinition: "Lasting for a very short time.",
+          contextMeaning: "Emphasizes the fleeting quality of spoken speech.",
+          etymology: {
+            root: "Greek 'ephemeros'",
+            history: "Originally referenced one-day fevers.",
+          },
+          synonyms: ["fleeting", "transitory"],
+          antonyms: ["permanent"],
+          toneRegister: "Literary",
+        },
+      };
 
-                    // File Upload
-                    document
-                      .getElementById("fileInput")
-                      .addEventListener("change", async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        document.getElementById("docTitle").textContent = `"${file.name}"`;
-                        if (file.type === "application/pdf") {
-                          AppState.pdfDoc = await pdfjsLib.getDocument({
-                            data: await file.arrayBuffer(),
-                          }).promise;
-                          AppState.docType = "pdf";
-                          AppState.currentPage = 1;
-                          renderCurrentSpread();
-                          detectAndApplyBookTheme();
-                        } else {
-                          AppState.rawFullText = await file.text();
-                          AppState.docType = "txt";
-                          AppState.currentPage = 1;
-                          await repaginateCurrentDocument();
-                          detectAndApplyBookTheme();
-                        }
-                      });
+      let elWordTooltip,
+        elTooltipWord,
+        elPageLeft,
+        elPageRight,
+        elPageLeftNum,
+        elPageRightNum;
+      let elInputPageNum,
+        elTxtTotalPages,
+        elPageRangeSlider,
+        elProgressPercent,
+        elBookSpread,
+        elReactiveBg,
+        elSidebarInsights;
 
-                    // UI Actions
-                    document
-                      .getElementById("btnToggleSpread")
-                      .addEventListener("click", () => {
-                        AppState.isSpreadMode = !AppState.isSpreadMode;
-                        document.getElementById("lblSpreadMode").textContent =
-                          AppState.isSpreadMode ? "2-Page Spread" : "Single Page";
-                        if (AppState.docType === "txt" || AppState.docType === "sample")
-                          repaginateCurrentDocument();
-                        else renderCurrentSpread();
-                      });
+      function initDOMCache() {
+        elWordTooltip = document.getElementById("wordTooltip");
+        elTooltipWord = document.getElementById("tooltipWord");
+        elPageLeft = document.getElementById("pageLeft");
+        elPageRight = document.getElementById("pageRight");
+        elPageLeftNum = document.getElementById("pageLeftNum");
+        elPageRightNum = document.getElementById("pageRightNum");
+        elInputPageNum = document.getElementById("inputPageNum");
+        elTxtTotalPages = document.getElementById("txtTotalPages");
+        elPageRangeSlider = document.getElementById("pageRangeSlider");
+        elProgressPercent = document.getElementById("progressPercent");
+        elBookSpread = document.getElementById("bookSpread");
+        elReactiveBg = document.getElementById("reactiveBg");
+        elSidebarInsights = document.getElementById("sidebarInsights");
+      }
 
-                    document
-                      .getElementById("btnThemeMenu")
-                      .addEventListener("click", () =>
-                        document.getElementById("dropdownTheme").classList.toggle("hidden"),
-                      );
-                    document.querySelectorAll(".theme-opt").forEach((btn) =>
-                      btn.addEventListener("click", (e) => {
-                        applyTheme(e.currentTarget.dataset.theme);
-                        document.getElementById("dropdownTheme").classList.add("hidden");
-                      }),
-                    );
-                    document
-                      .getElementById("btnAutoTheme")
-                      ?.addEventListener("click", () => {
-                        detectAndApplyBookTheme();
-                        document.getElementById("dropdownTheme").classList.add("hidden");
-                      });
+      /* Pagination & Layout */
+      function getPageContentMetrics() {
+        const contentDiv = elPageLeft.querySelector(".page-content");
+        return {
+          availableWidth: contentDiv.clientWidth,
+          availableHeight: Math.max(120, elPageLeft.clientHeight - 80),
+        };
+      }
 
-                    // Tools
-                    document
-                      .getElementById("btnQuickLookup")
-                      .addEventListener("click", analyzeSelectedWord);
-                    document
-                      .getElementById("btnQuickAudio")
-                      .addEventListener(
-                        "click",
-                        () =>
-                          "speechSynthesis" in window &&
-                          window.speechSynthesis.speak(
-                            new SpeechSynthesisUtterance(AppState.selectedWord),
-                          ),
-                      );
-                    document
-                      .getElementById("btnSpeakWord")
-                      .addEventListener(
-                        "click",
-                        () =>
-                          "speechSynthesis" in window &&
-                          window.speechSynthesis.speak(
-                            new SpeechSynthesisUtterance(AppState.selectedWord),
-                          ),
-                      );
-                    document
-                      .getElementById("btnCloseSidebar")
-                      .addEventListener("click", () =>
-                        elSidebarInsights.classList.add("translate-x-full"),
-                      );
+      async function paginateRawText(rawText) {
+        const { availableWidth, availableHeight } = getPageContentMetrics();
+        if (!rawText || !rawText.trim()) return [[""]];
 
-                    document
-                      .getElementById("btnSaveToDeck")
-                      .addEventListener("click", () => {
-                        if (
-                          AppState.selectedWord &&
-                          !AppState.savedDeck.find((x) => x.word === AppState.selectedWord)
-                        ) {
-                          AppState.savedDeck.push({
-                            word: AppState.selectedWord,
-                            phonetic: AppState.analyzedData?.phonetic,
-                            meaning: AppState.analyzedData?.generalDefinition,
-                            etymology: AppState.analyzedData?.etymology?.root,
-                          });
-                          localStorage.setItem(
-                            "lexicon_deck",
-                            JSON.stringify(AppState.savedDeck),
-                          );
-                          document.getElementById("deckBadge").textContent =
-                            AppState.savedDeck.length;
-                        }
-                      });
+        const measurer = document.createElement("div");
+        measurer.style.position = "absolute";
+        measurer.style.visibility = "hidden";
+        measurer.style.width = availableWidth + "px";
+        measurer.className =
+          "font-serif text-sm md:text-base leading-relaxed tracking-wide space-y-4";
+        document.body.appendChild(measurer);
 
-                    document.getElementById("btnOpenDeck").addEventListener("click", () => {
-                      AppState.activeDeckIndex = 0;
-                      renderFlashcard();
-                      document.getElementById("modalDeck").classList.remove("hidden");
-                    });
-                    document
-                      .getElementById("btnCloseDeck")
-                      .addEventListener("click", () =>
-                        document.getElementById("modalDeck").classList.add("hidden"),
-                      );
-                    document.getElementById("activeCard").addEventListener("click", () => {
-                      document.getElementById("cardFront").classList.toggle("hidden");
-                      document.getElementById("cardBack").classList.toggle("hidden");
-                    });
-                    document.getElementById("btnPrevCard").addEventListener("click", () => {
-                      if (AppState.activeDeckIndex > 0) {
-                        AppState.activeDeckIndex--;
-                        renderFlashcard();
-                      }
-                    });
-                    document.getElementById("btnNextCard").addEventListener("click", () => {
-                      if (AppState.activeDeckIndex < AppState.savedDeck.length - 1) {
-                        AppState.activeDeckIndex++;
-                        renderFlashcard();
-                      }
-                    });
-                    document
-                      .getElementById("btnApiKey")
-                      .addEventListener("click", () =>
-                        document.getElementById("modalApiKey").classList.remove("hidden"),
-                      );
-                    document
-                      .getElementById("btnSaveApiKey")
-                      .addEventListener("click", () => {
-                        AppState.apiKey = document
-                          .getElementById("inputApiKey")
-                          .value.trim();
-                        localStorage.setItem("gemini_api_key", AppState.apiKey);
-                        document.getElementById("modalApiKey").classList.add("hidden");
-                      });
+        const paragraphs = rawText
+          .split(/\n\s*\n/)
+          .map((p) => p.trim())
+          .filter(Boolean);
+        const pages = [];
+        let currentPageParas = [];
 
-                    document.getElementById("deckBadge").textContent =
-                      AppState.savedDeck.length;
-                    window.addEventListener("resize", () => {
-                      clearTimeout(window.resizeTimer);
-                      window.resizeTimer = setTimeout(
-                        () => repaginateCurrentDocument(),
-                        350,
-                      );
-                    });
-                  });
+        const commitPage = () => {
+          pages.push(currentPageParas.length ? currentPageParas : [""]);
+          currentPageParas = [];
+          measurer.innerHTML = "";
+        };
+
+        for (const paragraph of paragraphs) {
+          const words = paragraph.split(/\s+/).filter(Boolean);
+          let startIdx = 0;
+          while (startIdx < words.length) {
+            const remaining = words.slice(startIdx);
+            const testP = document.createElement("p");
+            testP.className = "leading-relaxed mb-4 text-justify";
+            measurer.appendChild(testP);
+
+            const fits = (k) => {
+              testP.textContent = remaining.slice(0, k).join(" ");
+              return measurer.scrollHeight <= availableHeight;
+            };
+
+            let best;
+            if (fits(remaining.length)) best = remaining.length;
+            else {
+              let lo = 0,
+                hi = remaining.length;
+              while (lo < hi) {
+                const mid = Math.ceil((lo + hi) / 2);
+                if (fits(mid)) lo = mid;
+                else hi = mid - 1;
+              }
+              best = lo;
+              fits(best);
+            }
+
+            if (best === 0) {
+              measurer.removeChild(testP);
+              if (currentPageParas.length === 0) {
+                best = 1;
+                currentPageParas.push(remaining[0]);
+                startIdx++;
+                commitPage();
+                continue;
+              }
+              commitPage();
+              continue;
+            }
+
+            currentPageParas.push(remaining.slice(0, best).join(" "));
+            startIdx += best;
+            if (startIdx < words.length) commitPage();
+          }
+        }
+        if (currentPageParas.length) commitPage();
+        document.body.removeChild(measurer);
+        return pages.length ? pages : [[""]];
+      }
+
+      async function repaginateCurrentDocument() {
+        if (AppState.docType !== "sample" && AppState.docType !== "txt") return;
+        const progress =
+          AppState.totalPages > 1
+            ? (AppState.currentPage - 1) / (AppState.totalPages - 1)
+            : 0;
+        AppState.paginatedPages = await paginateRawText(AppState.rawFullText);
+        AppState.totalPages = AppState.paginatedPages.length;
+        AppState.currentPage = Math.max(
+          1,
+          Math.round(progress * (AppState.totalPages - 1)) + 1,
+        );
+        renderCurrentSpread();
+      }
+
+      async function renderCurrentSpread() {
+        const pageIndex = AppState.currentPage;
+        const isMobile = window.innerWidth < 768;
+        const useSpread = AppState.isSpreadMode && !isMobile;
+
+        document
+          .getElementById("curlLeft")
+          ?.classList.toggle("hidden", pageIndex <= 1);
+        document
+          .getElementById("curlRight")
+          ?.classList.toggle("hidden", pageIndex >= AppState.totalPages);
+
+        if (AppState.docType === "pdf") {
+          AppState.totalPages = AppState.pdfDoc.numPages;
+          await renderPdfPageToContainer(pageIndex, elPageLeft);
+          elPageLeftNum.textContent = `Page ${pageIndex}`;
+
+          if (useSpread && pageIndex < AppState.totalPages) {
+            elPageRight.classList.remove("hidden");
+            document.getElementById("bookSpine").classList.remove("hidden");
+            await renderPdfPageToContainer(pageIndex + 1, elPageRight);
+            elPageRightNum.textContent = `Page ${pageIndex + 1}`;
+          } else {
+            elPageRight.classList.add("hidden");
+            document.getElementById("bookSpine").classList.add("hidden");
+          }
+        } else {
+          const renderText = (container, paras) => {
+            const div = container.querySelector(".page-content");
+            div.innerHTML = "";
+            (paras || []).forEach((t) => {
+              const p = document.createElement("p");
+              p.className = "leading-relaxed mb-4 text-justify";
+              p.textContent = t;
+              div.appendChild(p);
+            });
+          };
+
+          renderText(elPageLeft, AppState.paginatedPages[pageIndex - 1]);
+          elPageLeftNum.textContent = `Page ${pageIndex}`;
+
+          if (useSpread && pageIndex < AppState.totalPages) {
+            elPageRight.classList.remove("hidden");
+            document.getElementById("bookSpine").classList.remove("hidden");
+            renderText(elPageRight, AppState.paginatedPages[pageIndex]);
+            elPageRightNum.textContent = `Page ${pageIndex + 1}`;
+          } else {
+            elPageRight.classList.add("hidden");
+            document.getElementById("bookSpine").classList.add("hidden");
+          }
+        }
+
+        elInputPageNum.value = pageIndex;
+        elInputPageNum.max = AppState.totalPages;
+        elTxtTotalPages.textContent = AppState.totalPages;
+        elPageRangeSlider.max = AppState.totalPages;
+        elPageRangeSlider.value = pageIndex;
+        elProgressPercent.textContent = `${Math.round((pageIndex / AppState.totalPages) * 100)}%`;
+      }
+
+      async function renderPdfPageToContainer(pageNum, container) {
+        const contentDiv = container.querySelector(".page-content");
+        contentDiv.innerHTML = "";
+
+        try {
+          const page = await AppState.pdfDoc.getPage(pageNum);
+
+          const availableWidth = contentDiv.clientWidth;
+
+          const baseViewport = page.getViewport({
+            scale: 1,
+          });
+
+          const scale = availableWidth / baseViewport.width;
+
+          const viewport = page.getViewport({
+            scale: scale,
+          });
+
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          canvas.style.width = `${viewport.width}px`;
+          canvas.style.height = `${viewport.height}px`;
+
+          await page.render({
+            canvasContext: context,
+            viewport: viewport,
+          }).promise;
+
+          contentDiv.appendChild(canvas);
+
+          const textContent = await page.getTextContent();
+
+          const textLayerDiv = document.createElement("div");
+
+          textLayerDiv.className = "textLayer";
+
+          textLayerDiv.style.width = `${viewport.width}px`;
+          textLayerDiv.style.height = `${viewport.height}px`;
+
+          pdfjsLib.renderTextLayer({
+            textContentSource: textContent,
+            container: textLayerDiv,
+            viewport: viewport,
+            textDivs: [],
+          });
+
+          contentDiv.appendChild(textLayerDiv);
+        } catch (err) {
+          console.error("PDF Render Error:", err);
+        }
+      }
+      function animatePageTurn(direction, onComplete) {
+        const leaf = document.getElementById("flippingLeaf");
+        const leafContent = document.getElementById("flippingLeafContent");
+        const spreadContainer = document.querySelector(
+          ".book-spread-container",
+        );
+
+        leaf.className = `flipping-leaf ${direction === "next" ? "flip-right-to-left" : "flip-left-to-right"} theme-${AppState.theme}`;
+        leafContent.innerHTML = (
+          direction === "next" ? elPageRight : elPageLeft
+        ).querySelector(".page-content").innerHTML;
+
+        leaf.classList.remove("hidden");
+        if (spreadContainer) spreadContainer.classList.add("is-turning");
+        shiftAmbientBgOnFlip();
+
+        let swapped = false;
+        setTimeout(() => {
+          if (!swapped) {
+            swapped = true;
+            onComplete();
+          }
+        }, 500);
+        setTimeout(() => {
+          if (!swapped) {
+            swapped = true;
+            onComplete();
+          }
+          leaf.classList.add("hidden");
+          if (spreadContainer) spreadContainer.classList.remove("is-turning");
+        }, 950);
+      }
+
+      function shiftAmbientBgOnFlip() {
+        const a1 = document.getElementById("glowAura1"),
+          a2 = document.getElementById("glowAura2");
+        if (a1 && a2) {
+          a1.style.transform = `scale(1.25) translate(${Math.random() * 40 - 20}px, ${Math.random() * 40 - 20}px)`;
+          a2.style.transform = `scale(0.85) translate(${Math.random() * 40 - 20}px, ${Math.random() * 40 - 20}px)`;
+          setTimeout(() => {
+            a1.style.transform = "";
+            a2.style.transform = "";
+          }, 1200);
+        }
+      }
+
+      /* Word Selection & Gemini API */
+      document.addEventListener("selectionchange", () => {
+        if (!elWordTooltip) return;
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) return hideTooltip();
+
+        const rawText = selection.toString().trim();
+        if (!rawText || rawText.length > 40 || /\s/.test(rawText)) return;
+        const cleanWord = rawText.replace(/[^a-zA-Z0-9'-]/g, "");
+        if (!cleanWord) return;
+
+        AppState.selectedWord = cleanWord;
+        const fullText =
+          selection.getRangeAt(0).startContainer.textContent || "";
+        const sentences = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
+        const match = sentences.find((s) => s.includes(cleanWord));
+        AppState.selectedContextSentence = match
+          ? match.trim()
+          : fullText.slice(0, 150).trim();
+
+        if (elTooltipWord) elTooltipWord.textContent = cleanWord;
+        const rect = selection.getRangeAt(0).getBoundingClientRect();
+        elWordTooltip.style.left = `${Math.max(10, rect.left + window.scrollX + rect.width / 2 - 80)}px`;
+        elWordTooltip.style.top = `${Math.max(10, rect.top + window.scrollY - 50)}px`;
+        elWordTooltip.classList.replace("hidden-bubble", "visible-bubble");
+      });
+
+      function hideTooltip() {
+        elWordTooltip?.classList.replace("visible-bubble", "hidden-bubble");
+      }
+
+      async function analyzeSelectedWord() {
+        hideTooltip();
+        const word = AppState.selectedWord;
+        const contextSentence = AppState.selectedContextSentence;
+        if (!word) return;
+
+        elSidebarInsights.classList.remove("translate-x-full");
+        document.getElementById("activeWordTitle").textContent = word;
+        document.getElementById("activeSentenceContext").textContent =
+          `"${contextSentence}"`;
+        document.getElementById("activeGeneralDefinition").textContent =
+          "Analyzing lexical context...";
+
+        let data = null;
+        if (AppState.apiKey) {
+          try {
+            const response = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${AppState.apiKey}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      parts: [
+                        {
+                          text: `Analyze "${word}" in context: "${contextSentence}". Return JSON: partOfSpeech, phonetic, generalDefinition, contextMeaning, etymology {root, history}, synonyms[], antonyms[], toneRegister.`,
+                        },
+                      ],
+                    },
+                  ],
+                  systemInstruction: {
+                    parts: [
+                      {
+                        text: "You are a linguistic scholar. Return strict JSON.",
+                      },
+                    ],
+                  },
+                  generationConfig: { responseMimeType: "application/json" },
+                }),
+              },
+            );
+            data = JSON.parse(
+              (await response.json()).candidates[0].content.parts[0].text,
+            );
+          } catch (err) {
+            console.warn("API failed", err);
+          }
+        }
+
+        if (!data) {
+          data = MOCK_DICTIONARY[word.toLowerCase()] || {
+            partOfSpeech: "unknown",
+            phonetic: `/${word.toLowerCase()}/`,
+            generalDefinition: `Definition of ${word}.`,
+            contextMeaning: `Meaning in this specific text.`,
+            etymology: {
+              root: "Unknown origin",
+              history: "Tracing back through texts.",
+            },
+            synonyms: ["related"],
+            antonyms: [],
+            toneRegister: "General",
+          };
+        }
+
+        AppState.analyzedData = data;
+        document.getElementById("activePartOfSpeech").textContent =
+          data.partOfSpeech || "word";
+        document.getElementById("activePhonetic").textContent =
+          data.phonetic || "";
+        document.getElementById("activeContextMeaning").textContent =
+          data.contextMeaning || data.generalDefinition;
+        document.getElementById("activeGeneralDefinition").textContent =
+          data.generalDefinition;
+        document.getElementById("activeEtymologyRoot").textContent =
+          data.etymology?.root || "N/A";
+        document.getElementById("activeEtymologyHistory").textContent =
+          data.etymology?.history || "N/A";
+        document.getElementById("activeToneRegister").textContent =
+          data.toneRegister || "General";
+
+        const fillTags = (id, arr) => {
+          const el = document.getElementById(id);
+          el.innerHTML = "";
+          (arr || []).forEach((t) => {
+            const span = document.createElement("span");
+            span.className = "px-2 py-0.5 rounded bg-slate-800 text-slate-300";
+            span.textContent = t;
+            el.appendChild(span);
+          });
+        };
+        fillTags("activeSynonyms", data.synonyms);
+        fillTags("activeAntonyms", data.antonyms);
+      }
+
+      /* Themes & Actions */
+      async function detectAndApplyBookTheme() {
+        const badge = document.getElementById("detectedMoodTag");
+        if (badge) {
+          badge.classList.remove("hidden");
+          badge.textContent = "🔎 Scanning book keywords...";
+        }
+
+        let text = "";
+        if (AppState.docType === "pdf" && AppState.pdfDoc) {
+          for (let i = 1; i <= Math.min(AppState.pdfDoc.numPages, 20); i++) {
+            const content = await (
+              await AppState.pdfDoc.getPage(i)
+            ).getTextContent();
+            text += content.items.map((it) => it.str).join(" ") + " ";
+          }
+        } else text = AppState.rawFullText || DEMO_PAGES.join(" ");
+
+        const lower = text.toLowerCase();
+        let matchedGenre = null,
+          maxScore = 0;
+
+        Object.entries(GENRE_PROFILES).forEach(([key, profile]) => {
+          let score = 0;
+          profile.keywords.forEach((kw) => {
+            const m = lower.match(new RegExp(`\\b${kw}\\b`, "gi"));
+            if (m) score += m.length;
+          });
+          if (score > maxScore) {
+            maxScore = score;
+            matchedGenre = profile;
+          }
+        });
+
+        if (matchedGenre && maxScore >= 3) {
+          applyTheme(matchedGenre.theme);
+          if (badge)
+            badge.textContent = `${matchedGenre.icon} Auto-detected: ${matchedGenre.label}`;
+        } else {
+          applyTheme("dark-classic");
+          if (badge) badge.textContent = `🎨 Defaulting to Classic Dark Theme`;
+        }
+      }
+
+      function applyTheme(themeName) {
+        AppState.theme = themeName;
+
+        elBookSpread.className = `book-spread-container theme-${themeName}`;
+      }
+
+      function renderFlashcard() {
+        if (!AppState.savedDeck.length) return;
+        const item = AppState.savedDeck[AppState.activeDeckIndex];
+        document.getElementById("deckWord").textContent = item.word;
+        document.getElementById("deckPhonetic").textContent = item.phonetic;
+        document.getElementById("deckMeaning").textContent = item.meaning;
+        document.getElementById("deckEtym").textContent = item.etymology;
+        document.getElementById("deckCounter").textContent =
+          `${AppState.activeDeckIndex + 1} / ${AppState.savedDeck.length}`;
+        document.getElementById("cardFront").classList.remove("hidden");
+        document.getElementById("cardBack").classList.add("hidden");
+      }
+
+      /* Initialization */
+      window.addEventListener("DOMContentLoaded", async () => {
+        initDOMCache();
+        AppState.rawFullText = DEMO_PAGES.join("\n\n");
+        await repaginateCurrentDocument();
+        detectAndApplyBookTheme();
+
+        // Nav Listeners
+        const goNext = () => {
+          if (AppState.currentPage < AppState.totalPages)
+            animatePageTurn("next", () => {
+              AppState.currentPage += AppState.isSpreadMode ? 2 : 1;
+              renderCurrentSpread();
+            });
+        };
+        const goPrev = () => {
+          if (AppState.currentPage > 1)
+            animatePageTurn("prev", () => {
+              AppState.currentPage -= AppState.isSpreadMode ? 2 : 1;
+              renderCurrentSpread();
+            });
+        };
+
+        document
+          .getElementById("btnNextPage")
+          .addEventListener("click", goNext);
+        document.getElementById("curlRight")?.addEventListener("click", goNext);
+        document
+          .getElementById("btnPrevPage")
+          .addEventListener("click", goPrev);
+        document.getElementById("curlLeft")?.addEventListener("click", goPrev);
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "ArrowRight") goNext();
+          if (e.key === "ArrowLeft") goPrev();
+        });
+
+        // File Upload
+        document
+          .getElementById("fileInput")
+          .addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById("docTitle").textContent = `"${file.name}"`;
+            if (file.type === "application/pdf") {
+              AppState.pdfDoc = await pdfjsLib.getDocument({
+                data: await file.arrayBuffer(),
+              }).promise;
+              AppState.docType = "pdf";
+              AppState.currentPage = 1;
+              renderCurrentSpread();
+              detectAndApplyBookTheme();
+            } else {
+              AppState.rawFullText = await file.text();
+              AppState.docType = "txt";
+              AppState.currentPage = 1;
+              await repaginateCurrentDocument();
+              detectAndApplyBookTheme();
+            }
+          });
+
+        // UI Actions
+        document
+          .getElementById("btnToggleSpread")
+          .addEventListener("click", () => {
+            AppState.isSpreadMode = !AppState.isSpreadMode;
+            document.getElementById("lblSpreadMode").textContent =
+              AppState.isSpreadMode ? "2-Page Spread" : "Single Page";
+            if (AppState.docType === "txt" || AppState.docType === "sample")
+              repaginateCurrentDocument();
+            else renderCurrentSpread();
+          });
+
+        document
+          .getElementById("btnThemeMenu")
+          .addEventListener("click", () =>
+            document.getElementById("dropdownTheme").classList.toggle("hidden"),
+          );
+        document.querySelectorAll(".theme-opt").forEach((btn) =>
+          btn.addEventListener("click", (e) => {
+            applyTheme(e.currentTarget.dataset.theme);
+            document.getElementById("dropdownTheme").classList.add("hidden");
+          }),
+        );
+        document
+          .getElementById("btnAutoTheme")
+          ?.addEventListener("click", () => {
+            detectAndApplyBookTheme();
+            document.getElementById("dropdownTheme").classList.add("hidden");
+          });
+
+        // Tools
+        document
+          .getElementById("btnQuickLookup")
+          .addEventListener("click", analyzeSelectedWord);
+        document
+          .getElementById("btnQuickAudio")
+          .addEventListener(
+            "click",
+            () =>
+              "speechSynthesis" in window &&
+              window.speechSynthesis.speak(
+                new SpeechSynthesisUtterance(AppState.selectedWord),
+              ),
+          );
+        document
+          .getElementById("btnSpeakWord")
+          .addEventListener(
+            "click",
+            () =>
+              "speechSynthesis" in window &&
+              window.speechSynthesis.speak(
+                new SpeechSynthesisUtterance(AppState.selectedWord),
+              ),
+          );
+        document
+          .getElementById("btnCloseSidebar")
+          .addEventListener("click", () =>
+            elSidebarInsights.classList.add("translate-x-full"),
+          );
+
+        document
+          .getElementById("btnSaveToDeck")
+          .addEventListener("click", () => {
+            if (
+              AppState.selectedWord &&
+              !AppState.savedDeck.find((x) => x.word === AppState.selectedWord)
+            ) {
+              AppState.savedDeck.push({
+                word: AppState.selectedWord,
+                phonetic: AppState.analyzedData?.phonetic,
+                meaning: AppState.analyzedData?.generalDefinition,
+                etymology: AppState.analyzedData?.etymology?.root,
+              });
+              localStorage.setItem(
+                "lexicon_deck",
+                JSON.stringify(AppState.savedDeck),
+              );
+              document.getElementById("deckBadge").textContent =
+                AppState.savedDeck.length;
+            }
+          });
+
+        document.getElementById("btnOpenDeck").addEventListener("click", () => {
+          AppState.activeDeckIndex = 0;
+          renderFlashcard();
+          document.getElementById("modalDeck").classList.remove("hidden");
+        });
+        document
+          .getElementById("btnCloseDeck")
+          .addEventListener("click", () =>
+            document.getElementById("modalDeck").classList.add("hidden"),
+          );
+        document.getElementById("activeCard").addEventListener("click", () => {
+          document.getElementById("cardFront").classList.toggle("hidden");
+          document.getElementById("cardBack").classList.toggle("hidden");
+        });
+        document.getElementById("btnPrevCard").addEventListener("click", () => {
+          if (AppState.activeDeckIndex > 0) {
+            AppState.activeDeckIndex--;
+            renderFlashcard();
+          }
+        });
+        document.getElementById("btnNextCard").addEventListener("click", () => {
+          if (AppState.activeDeckIndex < AppState.savedDeck.length - 1) {
+            AppState.activeDeckIndex++;
+            renderFlashcard();
+          }
+        });
+        document
+          .getElementById("btnApiKey")
+          .addEventListener("click", () =>
+            document.getElementById("modalApiKey").classList.remove("hidden"),
+          );
+        document
+          .getElementById("btnSaveApiKey")
+          .addEventListener("click", () => {
+            AppState.apiKey = document
+              .getElementById("inputApiKey")
+              .value.trim();
+            localStorage.setItem("gemini_api_key", AppState.apiKey);
+            document.getElementById("modalApiKey").classList.add("hidden");
+          });
+
+        document.getElementById("deckBadge").textContent =
+          AppState.savedDeck.length;
+        window.addEventListener("resize", () => {
+          clearTimeout(window.resizeTimer);
+          window.resizeTimer = setTimeout(
+            () => repaginateCurrentDocument(),
+            350,
+          );
+        });
+      });
     </script>
   </body>
 </html>
