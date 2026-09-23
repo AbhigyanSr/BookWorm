@@ -1815,66 +1815,6 @@
                     console.error("PDF Render Error:", err);
                 }
             }
-                    const contentDiv = container.querySelector(".page-content");
-                    contentDiv.innerHTML = "";
-
-                    try {
-                      const page = await AppState.pdfDoc.getPage(pageNum);
-
-                      const availableWidth = contentDiv.clientWidth;
-
-                      const baseViewport = page.getViewport({
-                        scale: 1,
-                      });
-
-                      const scale = availableWidth / baseViewport.width;
-
-                      const viewport = page.getViewport({
-                        scale: scale,
-                      });
-
-                      // Wrapper keeps canvas + text layer in exactly the same coordinate system
-                      const surface = document.createElement("div");
-                      surface.className = "pdf-render-surface";
-
-                      surface.style.width = `${viewport.width}px`;
-                      surface.style.height = `${viewport.height}px`;
-
-                      // Canvas
-                      const canvas = document.createElement("canvas");
-                      const context = canvas.getContext("2d");
-
-                      canvas.width = viewport.width;
-                      canvas.height = viewport.height;
-
-                      canvas.className = "book-pdf-page";
-
-                      await page.render({
-                        canvasContext: context,
-                        viewport: viewport,
-                      }).promise;
-
-                      surface.appendChild(canvas);
-
-                      // Text layer
-                      const textContent = await page.getTextContent();
-
-                      const textLayerDiv = document.createElement("div");
-                      textLayerDiv.className = "textLayer";
-
-                      pdfjsLib.renderTextLayer({
-                        textContentSource: textContent,
-                        container: textLayerDiv,
-                        viewport: viewport,
-                        textDivs: [],
-                      });
-
-                      surface.appendChild(textLayerDiv);
-
-                      contentDiv.appendChild(surface);
-                    } catch (err) {
-                      console.error("PDF Render Error:", err);
-                    }
                   function animatePageTurn(direction, onComplete) {
                     const leaf = document.getElementById("flippingLeaf");
                     const leafContent = document.getElementById("flippingLeafContent");
