@@ -64,16 +64,6 @@
    PHYSICAL BOOK PAGES
    ========================= */
 
-      .book-spread-container {
-        background: #e9e4d8;
-        perspective: 2500px;
-
-        box-shadow:
-          0 35px 70px rgba(0, 0, 0, 0.65),
-          0 10px 25px rgba(0, 0, 0, 0.4);
-
-        border-radius: 3px;
-      }
       .book-pdf-page {
         display: block;
 
@@ -87,71 +77,225 @@
 
         box-shadow: none !important;
       }
-      /* Individual paper */
+      /* ================================
+   BOOK SPREAD
+================================ */
+
+      .book-spread-container {
+        position: relative;
+
+        width: 100%;
+        max-width: 1100px;
+
+        display: flex;
+        flex-direction: row;
+
+        align-items: stretch;
+
+        overflow: hidden;
+
+        background: #e8e4da;
+
+        border-radius: 4px;
+
+        box-shadow:
+          0 30px 70px rgba(0, 0, 0, 0.65),
+          0 8px 25px rgba(0, 0, 0, 0.35);
+      }
+
+      /* ================================
+   INDIVIDUAL BOOK PAGES
+================================ */
 
       .book-page {
-        background: linear-gradient(
-          90deg,
-          rgba(0, 0, 0, 0.035),
-          rgba(255, 255, 255, 0.15) 8%,
-          rgba(255, 255, 255, 0.12) 92%,
-          rgba(0, 0, 0, 0.035)
-        );
+        position: relative;
 
-        background-color: #f8f6ef;
+        width: 50% !important;
+        min-width: 0;
 
-        color: #1c1c1c;
+        flex: 0 0 50% !important;
 
-        min-height: 680px;
+        display: flex;
+        flex-direction: column;
 
-        padding: 28px 32px;
+        padding: 16px !important;
 
-        box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.04);
+        background: #f7f5ee;
+
+        color: #222;
+
+        box-sizing: border-box;
+
+        overflow: hidden;
       }
 
-      /* Left page */
+      /* LEFT PAGE */
 
       #pageLeft {
-        border-right: none;
+        width: 50% !important;
+        flex: 0 0 50% !important;
+
+        border: none !important;
       }
-      #pageLeft,
-      #pageRight {
-        margin: 0;
-        gap: 0;
-      }
-      .book-spread-container {
-    gap: 0;
-}
 
-.book-spread-container::before {
-    content: "";
-
-    position: absolute;
-
-    top: 0;
-    bottom: 0;
-
-    left: 50%;
-
-    width: 3px;
-
-    transform: translateX(-50%);
-
-    background: rgba(0,0,0,0.18);
-
-    z-index: 25;
-
-    box-shadow:
-        0 0 12px rgba(0,0,0,0.25);
-}
-.book-spread-container {
-    border-radius: 4px;
-}
-
-      /* Right page */
+      /* RIGHT PAGE */
 
       #pageRight {
-        border-left: none;
+        width: 50% !important;
+        flex: 0 0 50% !important;
+
+        border: none !important;
+      }
+
+      /* ================================
+   PDF CONTENT AREA
+================================ */
+
+      .book-page .page-content {
+        position: relative;
+
+        width: 100%;
+        height: 100%;
+
+        display: flex;
+
+        justify-content: center;
+        align-items: flex-start;
+
+        overflow: hidden;
+      }
+
+      /* PDF CANVAS */
+
+      .book-page canvas,
+      .book-pdf-page {
+        display: block;
+
+        width: 100% !important;
+        height: auto !important;
+
+        max-width: 100%;
+
+        margin: 0 auto;
+
+        border: none !important;
+        border-radius: 0 !important;
+
+        box-shadow: none !important;
+      }
+
+      /* ================================
+   CENTER BOOK GUTTER
+================================ */
+
+      .book-spine-crease {
+        position: absolute;
+
+        top: 0;
+        bottom: 0;
+
+        left: 50%;
+
+        width: 34px !important;
+
+        transform: translateX(-50%);
+
+        z-index: 20;
+
+        pointer-events: none;
+
+        background: linear-gradient(
+          90deg,
+          rgba(0, 0, 0, 0.03),
+          rgba(0, 0, 0, 0.1) 30%,
+          rgba(0, 0, 0, 0.25) 50%,
+          rgba(0, 0, 0, 0.1) 70%,
+          rgba(0, 0, 0, 0.03)
+        );
+
+        box-shadow: 0 0 18px rgba(0, 0, 0, 0.22);
+      }
+
+      /* ================================
+   PAGE SHADOWS TOWARD SPINE
+================================ */
+
+      #pageLeft::after {
+        content: "";
+
+        position: absolute;
+
+        top: 0;
+        right: 0;
+        bottom: 0;
+
+        width: 35px;
+
+        pointer-events: none;
+
+        z-index: 10;
+
+        background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.13));
+      }
+
+      #pageRight::after {
+        content: "";
+
+        position: absolute;
+
+        top: 0;
+        left: 0;
+        bottom: 0;
+
+        width: 35px;
+
+        pointer-events: none;
+
+        z-index: 10;
+
+        background: linear-gradient(to left, transparent, rgba(0, 0, 0, 0.13));
+      }
+
+      /* ================================
+   PAGE FOOTER
+================================ */
+
+      .book-page .page-footer {
+        flex-shrink: 0;
+
+        color: #777;
+
+        border-color: rgba(0, 0, 0, 0.1);
+      }
+
+      /* ================================
+   REMOVE OLD PDF CARD STYLING
+================================ */
+
+      .pdf-page-container canvas {
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .book-spread-container::before {
+        content: "";
+
+        position: absolute;
+
+        top: 0;
+        bottom: 0;
+
+        left: 50%;
+
+        width: 3px;
+
+        transform: translateX(-50%);
+
+        background: rgba(0, 0, 0, 0.18);
+
+        z-index: 25;
+
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.25);
       }
 
       /* PDF canvas */
@@ -781,45 +925,50 @@
             <!-- LEFT PAGE -->
             <div
               id="pageLeft"
-              class="pdf-page-container book-page w-full md:w-1/2 flex-1 relative flex flex-col justify-between min-w-0"
+              class="pdf-page-container book-page relative flex flex-col justify-between min-w-0"
             >
               <div
                 id="curlLeft"
                 class="page-corner-curl page-corner-left hidden"
                 title="Flip to previous page"
               ></div>
+
               <div
-                class="page-content font-serif text-slate-200 text-sm md:text-base leading-relaxed tracking-wide space-y-4 select-text flex-1 flex flex-col justify-center items-center"
+                class="page-content font-serif text-slate-200 text-sm md:text-base leading-relaxed tracking-wide space-y-4 select-text flex-1"
               ></div>
+
               <div
-                class="page-footer font-mono text-[11px] text-slate-500 flex justify-between items-center pt-4 border-t border-slate-700/20 w-full"
+                class="page-footer font-mono text-[11px] flex justify-between items-center pt-4 border-t w-full"
               >
                 <span id="pageLeftNum">Page 1</span>
-                <span class="italic font-serif text-[10px] opacity-60"
-                  >Deep Lexicon Reader</span
-                >
+                <span class="italic font-serif text-[10px] opacity-60">
+                  Deep Lexicon Reader
+                </span>
               </div>
             </div>
 
             <!-- RIGHT PAGE -->
             <div
               id="pageRight"
-              class="pdf-page-container book-page w-full md:w-1/2 flex-1 relative flex flex-col justify-between hidden md:flex min-w-0"
+              class="pdf-page-container book-page relative flex flex-col justify-between min-w-0"
             >
               <div
                 id="curlRight"
                 class="page-corner-curl page-corner-right"
                 title="Flip to next page"
               ></div>
+
               <div
-                class="page-content font-serif text-slate-200 text-sm md:text-base leading-relaxed tracking-wide space-y-4 select-text flex-1 flex flex-col justify-center items-center"
+                class="page-content font-serif text-slate-200 text-sm md:text-base leading-relaxed tracking-wide space-y-4 select-text flex-1"
               ></div>
+
               <div
-                class="page-footer font-mono text-[11px] text-slate-500 flex justify-between items-center pt-4 border-t border-slate-700/20 w-full"
+                class="page-footer font-mono text-[11px] flex justify-between items-center pt-4 border-t w-full"
               >
-                <span class="italic font-serif text-[10px] opacity-60"
-                  >Deep Lexicon Reader</span
-                >
+                <span class="italic font-serif text-[10px] opacity-60">
+                  Deep Lexicon Reader
+                </span>
+
                 <span id="pageRightNum">Page 2</span>
               </div>
             </div>
@@ -1495,7 +1644,8 @@
           const page = await AppState.pdfDoc.getPage(pageNum);
           const contentDiv = container.querySelector(".page-content");
 
-          const containerWidth = contentDiv.clientWidth;
+          const containerWidth =
+            container.querySelector(".page-content").clientWidth;
 
           const unscaledViewport = page.getViewport({
             scale: 1.0,
