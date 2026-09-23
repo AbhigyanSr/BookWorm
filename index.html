@@ -1407,23 +1407,7 @@
       </div>
     </div>
 
-    <script>
-      const tooltipWidth = elWordTooltip.offsetWidth;
-
-      let left = rect.left + rect.width / 2 - tooltipWidth / 2;
-      let top = rect.top - elWordTooltip.offsetHeight - 10;
-
-      left = Math.max(
-        10,
-        Math.min(left, window.innerWidth - tooltipWidth - 10),
-      );
-
-      if (top < 10) {
-        top = rect.bottom + 10;
-      }
-
-      elWordTooltip.style.left = `${left}px`;
-      elWordTooltip.style.top = `${top}px`;
+        <script>
       const AppState = {
         currentPage: 1,
         totalPages: 2,
