@@ -14,6 +14,9 @@ function sendJson(response, status, body) {
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": "Content-Type",
   });
   response.end(JSON.stringify(body));
 }
@@ -117,7 +120,7 @@ async function synthesizeWithGemini(word, context, lexicalData) {
   ].join("\n\n");
 
   const result = await fetchJson(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${encodeURIComponent(apiKey)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -128,9 +131,14 @@ async function synthesizeWithGemini(word, context, lexicalData) {
     },
   );
 
-  const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
   if (!text) throw new Error("Gemini returned no synthesis.");
-  return JSON.parse(text);
+  const jsonText = text.match(/```json\s*([\s\S]*?)\s*```/)?.[1] || text;
+  try {
+    return JSON.parse(jsonText);
+  } catch {
+    throw new Error("Gemini returned invalid JSON.");
+  }
 }
 
 function buildResponse(word, lexicalData, synthesis) {
@@ -190,7 +198,13 @@ async function serveStatic(request, response) {
     const fileStat = await stat(filePath);
     if (!fileStat.isFile()) throw new Error("Not a file");
     const content = await readFile(filePath);
-    const contentType = extname(filePath) === ".html" ? "text/html; charset=utf-8" : "application/octet-stream";
+    const contentTypes = {
+      ".html": "text/html; charset=utf-8",
+      ".js": "text/javascript; charset=utf-8",
+      ".css": "text/css; charset=utf-8",
+      ".pdf": "application/pdf",
+    };
+    const contentType = contentTypes[extname(filePath)] || "application/octet-stream";
     response.writeHead(200, { "content-type": contentType });
     response.end(content);
   } catch {
@@ -199,6 +213,14 @@ async function serveStatic(request, response) {
 }
 
 createServer((request, response) => {
+  if (request.method === "OPTIONS" && request.url === "/api/lexical") {
+    response.writeHead(204, {
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "POST, OPTIONS",
+      "access-control-allow-headers": "Content-Type",
+    });
+    return response.end();
+  }
   if (request.method === "POST" && request.url === "/api/lexical") return handleLexical(request, response);
   if (request.method === "GET") return serveStatic(request, response);
   sendJson(response, 405, { error: "Method not allowed" });

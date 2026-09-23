@@ -1342,6 +1342,8 @@
     </div>
 
     <script>
+      const API_URL = "https://deep-lexicon-api.onrender.com";
+
       const AppState = {
         currentPage: 1,
         totalPages: 2,
@@ -1817,7 +1819,7 @@
         let data;
         try {
           status.textContent = "Synthesizing sourced evidence and passage context...";
-          const response = await fetch("/api/lexical", {
+          const response = await fetch(`${API_URL}/api/lexical`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ word, context: contextSentence }),
