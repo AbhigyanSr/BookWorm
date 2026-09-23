@@ -908,14 +908,6 @@
           </div>
 
           <button
-            id="btnApiKey"
-            class="p-2 rounded-lg bg-slate-900/80 border border-slate-700/60 text-slate-300 hover:text-cyan-400 hover:bg-slate-800 transition"
-            title="Configure Gemini API Key"
-          >
-            <i class="fa-solid fa-key"></i>
-          </button>
-
-          <button
             id="btnOpenDeck"
             class="relative p-2 rounded-lg bg-slate-900/80 border border-slate-700/60 text-slate-300 hover:text-cyan-400 hover:bg-slate-800 transition"
             title="Open Saved Vocabulary Deck"
@@ -1105,6 +1097,8 @@
           </button>
         </div>
 
+        <p id="lexicalStatus" class="px-6 pt-4 text-xs text-slate-400"></p>
+
         <div id="sidebarBody" class="flex-1 overflow-y-auto p-6 space-y-6">
           <div class="space-y-2">
             <div class="flex items-baseline justify-between">
@@ -1171,6 +1165,21 @@
               id="activeGeneralDefinition"
               class="text-sm text-slate-300 leading-relaxed"
             ></p>
+          </div>
+
+          <div class="space-y-2">
+            <h4
+              class="text-xs font-mono text-slate-400 uppercase tracking-wider font-semibold flex items-center"
+            >
+              <i class="fa-solid fa-link text-cyan-400 mr-2"></i> Research
+              Sources
+            </h4>
+            <p
+              id="activeLexicalSources"
+              class="text-xs text-slate-400 leading-relaxed"
+            >
+              Awaiting lookup.
+            </p>
           </div>
 
           <div
@@ -1330,36 +1339,6 @@
         </div>
       </div>
 
-      <!-- API Key Modal -->
-      <div
-        id="modalApiKey"
-        class="fixed inset-0 z-50 glass-card bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4 hidden"
-      >
-        <div
-          class="w-full max-w-sm glass-card rounded-2xl border border-slate-700/80 p-6 space-y-4 shadow-2xl"
-        >
-          <h3 class="font-serif font-bold text-lg text-white flex items-center">
-            <i class="fa-solid fa-key text-cyan-400 mr-2"></i> Gemini API Key
-          </h3>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            Provide your Gemini API key for live etymology and context analysis.
-          </p>
-          <input
-            id="inputApiKey"
-            type="password"
-            placeholder="AIzaSy..."
-            class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-500"
-          />
-          <div class="flex justify-end space-x-2 pt-2">
-            <button
-              id="btnSaveApiKey"
-              class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs"
-            >
-              Save Key
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
 
     <script>
@@ -1375,7 +1354,6 @@
         selectedWord: "",
         selectedContextSentence: "",
         analyzedData: null,
-        apiKey: localStorage.getItem("gemini_api_key") || "",
         savedDeck: JSON.parse(localStorage.getItem("lexicon_deck") || "[]"),
         activeDeckIndex: 0,
       };
@@ -1474,37 +1452,6 @@
             "citation",
             "research",
           ],
-        },
-      };
-
-      const MOCK_DICTIONARY = {
-        ubiquitous: {
-          partOfSpeech: "adjective",
-          phonetic: "/juːˈbɪk.wɪ.təs/",
-          generalDefinition:
-            "Present, appearing, or found everywhere at the same time; omnipresent.",
-          contextMeaning:
-            "In this sentence, it highlights how algorithms have become omnipresent in digital life.",
-          etymology: {
-            root: "Latin 'ubique' meaning 'everywhere'",
-            history: "Coined in the mid-19th century.",
-          },
-          synonyms: ["omnipresent", "pervasive"],
-          antonyms: ["rare"],
-          toneRegister: "Formal",
-        },
-        ephemeral: {
-          partOfSpeech: "adjective",
-          phonetic: "/ɪˈfem.ər.əl/",
-          generalDefinition: "Lasting for a very short time.",
-          contextMeaning: "Emphasizes the fleeting quality of spoken speech.",
-          etymology: {
-            root: "Greek 'ephemeros'",
-            history: "Originally referenced one-day fevers.",
-          },
-          synonyms: ["fleeting", "transitory"],
-          antonyms: ["permanent"],
-          toneRegister: "Literary",
         },
       };
 
@@ -1830,13 +1777,16 @@
         if (!cleanWord) return;
 
         AppState.selectedWord = cleanWord;
-        const fullText =
-          selection.getRangeAt(0).startContainer.textContent || "";
+        const selectedNode = selection.getRangeAt(0).startContainer.parentElement;
+        const contextRoot = selectedNode?.closest(".textLayer, .page-content");
+        const fullText = (contextRoot?.innerText || contextRoot?.textContent || "").trim();
         const sentences = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
-        const match = sentences.find((s) => s.includes(cleanWord));
+        const match = sentences.find((s) =>
+          new RegExp(`\\b${cleanWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(s),
+        );
         AppState.selectedContextSentence = match
           ? match.trim()
-          : fullText.slice(0, 150).trim();
+          : fullText.slice(0, 600).trim();
 
         if (elTooltipWord) elTooltipWord.textContent = cleanWord;
         const rect = selection.getRangeAt(0).getBoundingClientRect();
@@ -1856,80 +1806,52 @@
         if (!word) return;
 
         elSidebarInsights.classList.remove("translate-x-full");
+        const status = document.getElementById("lexicalStatus");
         document.getElementById("activeWordTitle").textContent = word;
         document.getElementById("activeSentenceContext").textContent =
           `"${contextSentence}"`;
+        status.textContent = "Consulting authoritative lexical sources...";
         document.getElementById("activeGeneralDefinition").textContent =
-          "Analyzing lexical context...";
+          "Loading lexical evidence...";
 
-        let data = null;
-        if (AppState.apiKey) {
-          try {
-            const response = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${AppState.apiKey}`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  contents: [
-                    {
-                      parts: [
-                        {
-                          text: `Analyze "${word}" in context: "${contextSentence}". Return JSON: partOfSpeech, phonetic, generalDefinition, contextMeaning, etymology {root, history}, synonyms[], antonyms[], toneRegister.`,
-                        },
-                      ],
-                    },
-                  ],
-                  systemInstruction: {
-                    parts: [
-                      {
-                        text: "You are a linguistic scholar. Return strict JSON.",
-                      },
-                    ],
-                  },
-                  generationConfig: { responseMimeType: "application/json" },
-                }),
-              },
-            );
-            data = JSON.parse(
-              (await response.json()).candidates[0].content.parts[0].text,
-            );
-          } catch (err) {
-            console.warn("API failed", err);
-          }
-        }
-
-        if (!data) {
-          data = MOCK_DICTIONARY[word.toLowerCase()] || {
-            partOfSpeech: "unknown",
-            phonetic: `/${word.toLowerCase()}/`,
-            generalDefinition: `Definition of ${word}.`,
-            contextMeaning: `Meaning in this specific text.`,
-            etymology: {
-              root: "Unknown origin",
-              history: "Tracing back through texts.",
-            },
-            synonyms: ["related"],
-            antonyms: [],
-            toneRegister: "General",
-          };
+        let data;
+        try {
+          status.textContent = "Synthesizing sourced evidence and passage context...";
+          const response = await fetch("/api/lexical", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ word, context: contextSentence }),
+          });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.error || "Lexical lookup failed.");
+          data = payload;
+        } catch (error) {
+          status.textContent = "Lexical lookup unavailable. Start the local server and try again.";
+          document.getElementById("activeGeneralDefinition").textContent = error.message;
+          document.getElementById("activeLexicalSources").textContent = "No source data available.";
+          return;
         }
 
         AppState.analyzedData = data;
         document.getElementById("activePartOfSpeech").textContent =
           data.partOfSpeech || "word";
         document.getElementById("activePhonetic").textContent =
-          data.phonetic || "";
+          data.pronunciation || "Unavailable";
         document.getElementById("activeContextMeaning").textContent =
-          data.contextMeaning || data.generalDefinition;
+          data.contextualMeaning || "Contextual interpretation unavailable.";
         document.getElementById("activeGeneralDefinition").textContent =
-          data.generalDefinition;
+          data.definition || "Definition unavailable from current sources.";
         document.getElementById("activeEtymologyRoot").textContent =
-          data.etymology?.root || "N/A";
+          data.etymology || "Unavailable or uncertain.";
         document.getElementById("activeEtymologyHistory").textContent =
-          data.etymology?.history || "N/A";
+          data.historicalDevelopment || "Unavailable or uncertain.";
         document.getElementById("activeToneRegister").textContent =
-          data.toneRegister || "General";
+          `Confidence: ${data.confidence || "unknown"}`;
+        document.getElementById("activeLexicalSources").textContent =
+          data.sources?.length
+            ? data.sources.map((source) => source.name).join("; ")
+            : "Authoritative source unavailable.";
+        status.textContent = data.synthesisError || (data.cached ? "Loaded from lexical cache." : "Research complete.");
 
         const fillTags = (id, arr) => {
           const el = document.getElementById(id);
@@ -1941,8 +1863,8 @@
             el.appendChild(span);
           });
         };
-        fillTags("activeSynonyms", data.synonyms);
-        fillTags("activeAntonyms", data.antonyms);
+        fillTags("activeSynonyms", data.relatedWords);
+        fillTags("activeAntonyms", []);
       }
 
       /* Themes & Actions */
@@ -2220,21 +2142,6 @@
             renderFlashcard();
           }
         });
-        document
-          .getElementById("btnApiKey")
-          .addEventListener("click", () =>
-            document.getElementById("modalApiKey").classList.remove("hidden"),
-          );
-        document
-          .getElementById("btnSaveApiKey")
-          .addEventListener("click", () => {
-            AppState.apiKey = document
-              .getElementById("inputApiKey")
-              .value.trim();
-            localStorage.setItem("gemini_api_key", AppState.apiKey);
-            document.getElementById("modalApiKey").classList.add("hidden");
-          });
-
         document.getElementById("deckBadge").textContent =
           AppState.savedDeck.length;
         window.addEventListener("resize", () => {
