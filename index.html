@@ -2088,28 +2088,78 @@
         });
 
         // File Upload
-        document
-          .getElementById("fileInput")
-          .addEventListener("change", async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            document.getElementById("docTitle").textContent = `"${file.name}"`;
-            if (file.type === "application/pdf") {
-              AppState.pdfDoc = await pdfjsLib.getDocument({
-                data: await file.arrayBuffer(),
-              }).promise;
-              AppState.docType = "pdf";
-              AppState.currentPage = 1;
-              renderCurrentSpread();
-              detectAndApplyBookTheme();
-            } else {
-              AppState.rawFullText = await file.text();
-              AppState.docType = "txt";
-              AppState.currentPage = 1;
-              await repaginateCurrentDocument();
-              detectAndApplyBookTheme();
-            }
-          });
+const fileInput = document.getElementById("fileInput");
+
+fileInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    console.log("Selected file:", file.name);
+    console.log("File type:", file.type);
+    console.log("File size:", file.size);
+
+    try {
+        document.getElementById("docTitle").textContent =
+            `"${file.name}"`;
+
+        if (
+            file.type === "application/pdf" ||
+            file.name.toLowerCase().endsWith(".pdf")
+        ) {
+            console.log("Loading PDF...");
+
+            const arrayBuffer = await file.arrayBuffer();
+
+            console.log("ArrayBuffer loaded:", arrayBuffer.byteLength);
+
+            const loadingTask = pdfjsLib.getDocument({
+                data: arrayBuffer
+            });
+
+            AppState.pdfDoc = await loadingTask.promise;
+
+            console.log(
+                "PDF loaded successfully:",
+                AppState.pdfDoc.numPages,
+                "pages"
+            );
+
+            AppState.docType = "pdf";
+            AppState.currentPage = 1;
+            AppState.totalPages = AppState.pdfDoc.numPages;
+
+            await renderCurrentSpread();
+
+            detectAndApplyBookTheme();
+
+            console.log("PDF rendered successfully.");
+
+        } else {
+            console.log("Loading text file...");
+
+            AppState.rawFullText = await file.text();
+
+            AppState.docType = "txt";
+            AppState.currentPage = 1;
+
+            await repaginateCurrentDocument();
+
+            detectAndApplyBookTheme();
+        }
+
+    } catch (error) {
+        console.error("FILE UPLOAD ERROR:", error);
+
+        alert(
+            "Could not open this file.\n\n" +
+            error.message
+        );
+    }
+
+    // Allows selecting the same file again
+    e.target.value = "";
+});
 
         // UI Actions
         document
