@@ -206,19 +206,19 @@
       }
 
       .pdf-render-surface > canvas {
-    display: block;
+        display: block;
 
-    position: absolute;
-    top: 0;
-    left: 0;
+        position: absolute;
+        top: 0;
+        left: 0;
 
-    width: 100% !important;
-    height: 100% !important;
+        width: 100% !important;
+        height: 100% !important;
 
-    z-index: 1;
+        z-index: 1;
 
-    pointer-events: none;
-}
+        pointer-events: none;
+      }
 
       .page-content {
         position: relative;
@@ -237,39 +237,60 @@
         z-index: 1;
       }
 
-     .textLayer {
-    position: absolute;
+      .textLayer {
+        position: absolute;
 
-    top: 0;
-    left: 0;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
 
-    width: 100%;
-    height: 100%;
+        overflow: hidden;
 
-    overflow: hidden;
+        opacity: 1;
 
-    line-height: 1;
-    text-align: initial;
+        line-height: 1;
 
-    z-index: 2;
+        text-align: initial;
 
-    pointer-events: auto;
-}
+        text-size-adjust: none;
+        -webkit-text-size-adjust: none;
+        -moz-text-size-adjust: none;
 
-     .textLayer span {
-    position: absolute;
+        forced-color-adjust: none;
 
-    color: transparent;
+        z-index: 2;
 
-    white-space: pre;
+        pointer-events: auto;
+      }
 
-    cursor: text;
+      .textLayer span,
+      .textLayer br {
+        color: transparent;
 
-    transform-origin: 0% 0%;
-}
-.textLayer span::selection {
-    background: rgba(6, 182, 212, 0.35);
-}
+        position: absolute;
+
+        white-space: pre;
+
+        cursor: text;
+
+        transform-origin: 0% 0%;
+      }
+
+      .textLayer ::selection {
+        background: rgba(6, 182, 212, 0.35);
+      }
+
+      .textLayer span {
+        position: absolute;
+        color: transparent;
+        white-space: pre;
+        cursor: text;
+        transform-origin: 0% 0%;
+      }
+      .textLayer span::selection {
+        background: rgba(6, 182, 212, 0.35);
+      }
 
       /* PDF CANVAS */
       .book-pdf-page {
@@ -1411,7 +1432,7 @@
       </div>
     </div>
 
-        <script>
+    <script>
       const AppState = {
         currentPage: 1,
         totalPages: 2,
@@ -1747,73 +1768,72 @@
         elProgressPercent.textContent = `${Math.round((pageIndex / AppState.totalPages) * 100)}%`;
       }
 
-     async function renderPdfPageToContainer(pageNum, container) {
-    const contentDiv = container.querySelector(".page-content");
-    contentDiv.innerHTML = "";
+      async function renderPdfPageToContainer(pageNum, container) {
+        const contentDiv = container.querySelector(".page-content");
+        contentDiv.innerHTML = "";
 
-    try {
-        const page = await AppState.pdfDoc.getPage(pageNum);
+        try {
+          const page = await AppState.pdfDoc.getPage(pageNum);
 
-        const availableWidth = contentDiv.clientWidth;
+          const availableWidth = contentDiv.clientWidth;
 
-        const baseViewport = page.getViewport({
-            scale: 1
-        });
+          const baseViewport = page.getViewport({
+            scale: 1,
+          });
 
-        const scale = availableWidth / baseViewport.width;
+          const scale = availableWidth / baseViewport.width;
 
-        const viewport = page.getViewport({
-            scale
-        });
+          const viewport = page.getViewport({
+            scale,
+          });
 
-        // One coordinate system for both canvas and text layer
-        const surface = document.createElement("div");
-        surface.className = "pdf-render-surface";
+          // One coordinate system for both canvas and text layer
+          const surface = document.createElement("div");
+          surface.className = "pdf-render-surface";
 
-        surface.style.width = `${viewport.width}px`;
-        surface.style.height = `${viewport.height}px`;
+          surface.style.width = `${viewport.width}px`;
+          surface.style.height = `${viewport.height}px`;
 
-        // PDF canvas
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
+          // PDF canvas
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
 
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
 
-        canvas.style.width = `${viewport.width}px`;
-        canvas.style.height = `${viewport.height}px`;
+          canvas.style.width = `${viewport.width}px`;
+          canvas.style.height = `${viewport.height}px`;
 
-        await page.render({
+          await page.render({
             canvasContext: context,
-            viewport
-        }).promise;
+            viewport,
+          }).promise;
 
-        surface.appendChild(canvas);
+          surface.appendChild(canvas);
 
-        // PDF text layer
-        const textContent = await page.getTextContent();
+          // PDF text layer
+          const textLayerDiv = document.createElement("div");
 
-        const textLayerDiv = document.createElement("div");
-        textLayerDiv.className = "textLayer";
+          textLayerDiv.className = "textLayer";
 
-        textLayerDiv.style.width = `${viewport.width}px`;
-        textLayerDiv.style.height = `${viewport.height}px`;
+          // CRITICAL: PDF.js text layer must use the same scale as the canvas
+          textLayerDiv.style.setProperty("--scale-factor", viewport.scale);
 
-        surface.appendChild(textLayerDiv);
+          textLayerDiv.style.width = `${viewport.width}px`;
+          textLayerDiv.style.height = `${viewport.height}px`;
 
-        await pdfjsLib.renderTextLayer({
+          await pdfjsLib.renderTextLayer({
             textContentSource: textContent,
             container: textLayerDiv,
-            viewport,
-            textDivs: []
-        }).promise;
+            viewport: viewport,
+            textDivs: [],
+          });
 
-        contentDiv.appendChild(surface);
-
-    } catch (err) {
-        console.error("PDF Render Error:", err);
-    }
-}
+          contentDiv.appendChild(surface);
+        } catch (err) {
+          console.error("PDF Render Error:", err);
+        }
+      }
       function animatePageTurn(direction, onComplete) {
         const leaf = document.getElementById("flippingLeaf");
         const leafContent = document.getElementById("flippingLeafContent");
@@ -2087,78 +2107,72 @@
         });
 
         // File Upload
-const fileInput = document.getElementById("fileInput");
+        const fileInput = document.getElementById("fileInput");
 
-fileInput.addEventListener("change", async (e) => {
-    const file = e.target.files[0];
+        fileInput.addEventListener("change", async (e) => {
+          const file = e.target.files[0];
 
-    if (!file) return;
+          if (!file) return;
 
-    console.log("Selected file:", file.name);
-    console.log("File type:", file.type);
-    console.log("File size:", file.size);
+          console.log("Selected file:", file.name);
+          console.log("File type:", file.type);
+          console.log("File size:", file.size);
 
-    try {
-        document.getElementById("docTitle").textContent =
-            `"${file.name}"`;
+          try {
+            document.getElementById("docTitle").textContent = `"${file.name}"`;
 
-        if (
-            file.type === "application/pdf" ||
-            file.name.toLowerCase().endsWith(".pdf")
-        ) {
-            console.log("Loading PDF...");
+            if (
+              file.type === "application/pdf" ||
+              file.name.toLowerCase().endsWith(".pdf")
+            ) {
+              console.log("Loading PDF...");
 
-            const arrayBuffer = await file.arrayBuffer();
+              const arrayBuffer = await file.arrayBuffer();
 
-            console.log("ArrayBuffer loaded:", arrayBuffer.byteLength);
+              console.log("ArrayBuffer loaded:", arrayBuffer.byteLength);
 
-            const loadingTask = pdfjsLib.getDocument({
-                data: arrayBuffer
-            });
+              const loadingTask = pdfjsLib.getDocument({
+                data: arrayBuffer,
+              });
 
-            AppState.pdfDoc = await loadingTask.promise;
+              AppState.pdfDoc = await loadingTask.promise;
 
-            console.log(
+              console.log(
                 "PDF loaded successfully:",
                 AppState.pdfDoc.numPages,
-                "pages"
-            );
+                "pages",
+              );
 
-            AppState.docType = "pdf";
-            AppState.currentPage = 1;
-            AppState.totalPages = AppState.pdfDoc.numPages;
+              AppState.docType = "pdf";
+              AppState.currentPage = 1;
+              AppState.totalPages = AppState.pdfDoc.numPages;
 
-            await renderCurrentSpread();
+              await renderCurrentSpread();
 
-            detectAndApplyBookTheme();
+              detectAndApplyBookTheme();
 
-            console.log("PDF rendered successfully.");
+              console.log("PDF rendered successfully.");
+            } else {
+              console.log("Loading text file...");
 
-        } else {
-            console.log("Loading text file...");
+              AppState.rawFullText = await file.text();
 
-            AppState.rawFullText = await file.text();
+              AppState.docType = "txt";
+              AppState.currentPage = 1;
 
-            AppState.docType = "txt";
-            AppState.currentPage = 1;
+              await repaginateCurrentDocument();
 
-            await repaginateCurrentDocument();
+              detectAndApplyBookTheme();
+            }
+          } catch (error) {
+            console.error("FILE UPLOAD ERROR:", error);
 
-            detectAndApplyBookTheme();
-        }
+            alert("Could not open this file.\n\n" + error.message);
+          }
 
-    } catch (error) {
-        console.error("FILE UPLOAD ERROR:", error);
-
-        alert(
-            "Could not open this file.\n\n" +
-            error.message
-        );
-    }
-
-    // Allows selecting the same file again
-    e.target.value = "";
-});
+          // Allows selecting the same file again
+          e.target.value = "";
+        });
 
         // UI Actions
         document
