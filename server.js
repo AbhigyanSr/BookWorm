@@ -43,8 +43,8 @@ function cacheKey(word, context) {
 }
 
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, { ...options, signal: AbortSignal.timeout(8_000) });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  const response = await fetch(url, { ...options, signal: AbortSignal.timeout(30_000) });
+  if (!response.ok) throw new Error(`${response.status}${response.statusText}`);
   return response.json();
 }
 
@@ -106,8 +106,9 @@ async function getAuthoritativeLexicalData(word) {
 }
 
 async function synthesizeWithGemini(word, context, lexicalData) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  // We look for an OpenRouter key instead of Gemini
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY is missing from environment variables.");
 
   const prompt = [
     "You are a lexical research assistant, not a generic chatbot.",
@@ -120,46 +121,30 @@ async function synthesizeWithGemini(word, context, lexicalData) {
   ].join("\n\n");
 
   const requestBody = JSON.stringify({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { responseMimeType: "application/json" },
+    model: "openrouter/free",
+    messages: [{ role: "user", content: prompt }]
   });
 
-  let lastError;
+  try {
+    const result = await fetchJson("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: requestBody,
+    });
 
-  // Attempt the request up to 3 times
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const result = await fetchJson(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: requestBody,
-        },
-      );
+    const text = result.choices?.[0]?.message?.content?.trim();
+    if (!text) throw new Error("AI returned no synthesis.");
 
-      const text = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if (!text) throw new Error("Gemini returned no synthesis.");
-
-      const jsonText = text.match(/```json\s*([\s\S]*?)\s*```/)?.[1] || text;
-      return JSON.parse(jsonText);
-    } catch (error) {
-      lastError = error;
-
-      // If Google returns a 503, wait and retry
-      if (error.message.includes("503") && attempt < 3) {
-        console.warn(`Gemini 503 Overloaded (Attempt ${attempt}/3). Retrying in ${attempt * 1.5}s...`);
-        // Exponential backoff: Wait 1.5s, then 3.0s
-        await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
-        continue;
-      }
-
-      // Break immediately on non-503 errors (like 400 or 403)
-      break;
-    }
+    // Fallback JSON parser in case the AI wraps it in markdown blocks
+    const jsonText = text.match(/```json\s*([\s\S]*?)\s*```/)?.[1] || text;
+    return JSON.parse(jsonText);
+  } catch (error) {
+    console.warn("AI synthesis failed:", error.message);
+    throw error;
   }
-
-  throw new Error(lastError.message);
 }
 
 function buildResponse(word, lexicalData, synthesis) {
@@ -172,7 +157,7 @@ function buildResponse(word, lexicalData, synthesis) {
     historicalDevelopment: lexicalData.historicalDevelopment || "Unavailable from authoritative sources.",
     earliestKnownForm: lexicalData.earliestKnownForm || "Unknown",
     relatedWords: lexicalData.relatedWords,
-    contextualMeaning: "Contextual synthesis is unavailable until a server-side Gemini key is configured.",
+    contextualMeaning: "Contextual synthesis is unavailable until a valid server-side OpenRouter API key is configured.",
     contextualExplanation: "The authoritative lookup is shown without AI interpretation.",
     sources: lexicalData.sources,
     confidence: lexicalData.unavailable ? "low: authoritative source unavailable" : "medium: authoritative lexical source, no AI synthesis",
