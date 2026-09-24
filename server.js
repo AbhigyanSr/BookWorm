@@ -119,26 +119,47 @@ async function synthesizeWithGemini(word, context, lexicalData) {
     `Authoritative lexical evidence: ${JSON.stringify(lexicalData)}`,
   ].join("\n\n");
 
-  const result = await fetchJson(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" },
-      }),
-    },
-  );
+  const requestBody = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { responseMimeType: "application/json" },
+  });
 
-  const text = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-  if (!text) throw new Error("Gemini returned no synthesis.");
-  const jsonText = text.match(/```json\s*([\s\S]*?)\s*```/)?.[1] || text;
-  try {
-    return JSON.parse(jsonText);
-  } catch {
-    throw new Error("Gemini returned invalid JSON.");
+  let lastError;
+
+  // Attempt the request up to 3 times
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const result = await fetchJson(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: requestBody,
+        },
+      );
+
+      const text = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (!text) throw new Error("Gemini returned no synthesis.");
+
+      const jsonText = text.match(/```json\s*([\s\S]*?)\s*```/)?.[1] || text;
+      return JSON.parse(jsonText);
+    } catch (error) {
+      lastError = error;
+
+      // If Google returns a 503, wait and retry
+      if (error.message.includes("503") && attempt < 3) {
+        console.warn(`Gemini 503 Overloaded (Attempt ${attempt}/3). Retrying in ${attempt * 1.5}s...`);
+        // Exponential backoff: Wait 1.5s, then 3.0s
+        await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+        continue;
+      }
+
+      // Break immediately on non-503 errors (like 400 or 403)
+      break;
+    }
   }
+
+  throw new Error(lastError.message);
 }
 
 function buildResponse(word, lexicalData, synthesis) {
