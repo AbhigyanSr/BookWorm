@@ -43,7 +43,7 @@ function cacheKey(word, context) {
 }
 
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, { ...options, signal: AbortSignal.timeout(30_000) });
+  const response = await fetch(url, { ...options, signal: AbortSignal.timeout(90_000) });
   if (!response.ok) throw new Error(`${response.status}${response.statusText}`);
   return response.json();
 }
