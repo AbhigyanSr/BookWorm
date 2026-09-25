@@ -293,9 +293,10 @@ async function synthesizeWithGemini(word, context, lexicalData) {
     );
 
   const prompt = [
-    "You are a lexical research assistant, not a generic chatbot.",
-    "Use authoritative evidence first. Do not invent etymologies or historical forms.",
-    "Clearly label unsupported or uncertain facts as unknown or uncertain.",
+    "You are an expert lexical research assistant.",
+    "Provide a detailed definition, etymology, and root development for the selected word.",
+    "If authoritative lexical evidence is provided, prioritize it. If dictionary evidence is unavailable or empty, use your vast general linguistic and etymological knowledge to provide accurate details.",
+    "Do NOT output 'unknown' unless the input is complete gibberish or nonsense.",
     "Return only valid JSON with exactly these keys: word, pronunciation, partOfSpeech, definition, etymology, historicalDevelopment, earliestKnownForm, relatedWords, contextualMeaning, contextualExplanation, sources, confidence.",
     `Selected word: ${word}`,
     `Surrounding context: ${context}`,
@@ -391,7 +392,13 @@ async function handleLexical(request, response) {
 
     const value = buildResponse(word, lexicalData, synthesis);
     if (synthesisError) value.synthesisError = synthesisError;
-    cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+
+    // Only cache responses with a populated definition and successful synthesis.
+    const isUnknown =
+      !value.definition || value.definition.toLowerCase() === "unknown";
+    if (!isUnknown && !synthesisError) {
+      cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+    }
     return sendJson(response, 200, value);
   } catch (error) {
     console.error("Lexical request failed:", error);
