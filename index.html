@@ -156,13 +156,18 @@
 
         padding: 16px !important;
 
-        background: #f7f5ee;
+        background: #f7f5ee !important;
 
-        color: #222;
+        color: #1a1a1a !important;
 
         box-sizing: border-box;
 
         overflow: hidden;
+      }
+
+      .book-page .page-content,
+      .book-page .page-content p {
+        color: #1a1a1a !important;
       }
 
       /* LEFT PAGE */
@@ -1924,10 +1929,68 @@
         applyTheme("dark-classic");
         if (badge) badge.textContent = "🎨 Classic Dark Theme Active";
       }
+      const THEME_BACKGROUNDS = {
+        "dark-classic": {
+          bg: "#0f172a",
+          aura1: "rgba(14, 116, 144, 0.4)",
+          aura2: "rgba(49, 46, 129, 0.4)",
+          aura3: "rgba(19, 78, 74, 0.2)",
+        },
+        sepia: {
+          bg: "#211610",
+          aura1: "rgba(180, 83, 9, 0.45)",
+          aura2: "rgba(120, 53, 15, 0.5)",
+          aura3: "rgba(217, 119, 6, 0.25)",
+        },
+        midnight: {
+          bg: "#060a17",
+          aura1: "rgba(30, 58, 138, 0.5)",
+          aura2: "rgba(88, 28, 135, 0.45)",
+          aura3: "rgba(15, 23, 42, 0.6)",
+        },
+        academic: {
+          bg: "#1e293b",
+          aura1: "rgba(71, 85, 105, 0.35)",
+          aura2: "rgba(51, 65, 85, 0.4)",
+          aura3: "rgba(100, 116, 139, 0.2)",
+        },
+        romance: {
+          bg: "#2b0a1a",
+          aura1: "rgba(190, 24, 93, 0.45)",
+          aura2: "rgba(136, 19, 55, 0.5)",
+          aura3: "rgba(244, 114, 182, 0.2)",
+        },
+        fantasy: {
+          bg: "#110620",
+          aura1: "rgba(109, 40, 217, 0.45)",
+          aura2: "rgba(76, 29, 149, 0.5)",
+          aura3: "rgba(192, 132, 252, 0.25)",
+        },
+        scifi: {
+          bg: "#011019",
+          aura1: "rgba(13, 148, 136, 0.45)",
+          aura2: "rgba(8, 145, 178, 0.45)",
+          aura3: "rgba(15, 23, 42, 0.6)",
+        },
+      };
+
       function applyTheme(themeName) {
         AppState.theme = themeName;
 
-        elBookSpread.className = `book-spread-container theme-${themeName}`;
+        const palette =
+          THEME_BACKGROUNDS[themeName] || THEME_BACKGROUNDS["dark-classic"];
+
+        if (elReactiveBg) {
+          elReactiveBg.style.backgroundColor = palette.bg;
+        }
+
+        const aura1 = document.getElementById("glowAura1");
+        const aura2 = document.getElementById("glowAura2");
+        const aura3 = document.getElementById("glowAura3");
+
+        if (aura1) aura1.style.backgroundColor = palette.aura1;
+        if (aura2) aura2.style.backgroundColor = palette.aura2;
+        if (aura3) aura3.style.backgroundColor = palette.aura3;
       }
 
       function renderFlashcard() {

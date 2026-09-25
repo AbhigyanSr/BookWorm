@@ -148,7 +148,7 @@ async function handleGenre(request, response) {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: "google/gemini-2.0-flash-exp:free",
+          model: "google/gemini-3.5-transcribe",
           messages: [{ role: "user", content: prompt }],
         }),
       },
@@ -303,7 +303,7 @@ async function synthesizeWithGemini(word, context, lexicalData) {
   ].join("\n\n");
 
   const requestBody = JSON.stringify({
-    model: "google/gemini-2.0-flash-exp:free",
+    model: "google/gemini-3.5-transcribe",
     messages: [{ role: "user", content: prompt }],
   });
 
