@@ -148,7 +148,7 @@ async function handleGenre(request, response) {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: "mistralai/mistral-nemo:free",
+          model: "nvidia/nemotron-3-super-120b-a12b:free",
           messages: [{ role: "user", content: prompt }],
         }),
       },
@@ -303,7 +303,7 @@ async function synthesizeWithGemini(word, context, lexicalData) {
   ].join("\n\n");
 
   const requestBody = JSON.stringify({
-    model: "mistralai/mistral-nemo:free",
+    model: "nvidia/nemotron-3-super-120b-a12b:free",
     messages: [{ role: "user", content: prompt }],
   });
 
