@@ -427,14 +427,15 @@ async function serveStatic(request, response) {
 }
 
 createServer((request, response) => {
+  const url = request.url?.split("?")[0] || "/";
   if (
     request.method === "OPTIONS" &&
-    (request.url === "/api/lexical" || request.url === "/api/genre")
+    ["/api/lexical", "/api/genre", "/api/pdf/upload", "/api/pdf/current"].includes(url)
   ) {
     response.writeHead(204, {
       "access-control-allow-origin": "*",
       "access-control-allow-methods": "GET, POST, OPTIONS",
-      "access-control-allow-headers": "Content-Typ, X-File-Name",
+      "access-control-allow-headers": "Content-Type, X-File-Name",
     });
     return response.end();
   }
