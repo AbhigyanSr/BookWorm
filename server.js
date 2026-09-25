@@ -285,13 +285,6 @@ async function getAuthoritativeLexicalData(word) {
 }
 
 async function synthesizeWithGemini(word, context, lexicalData) {
-  // We look for an OpenRouter key instead of Gemini
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey)
-    throw new Error(
-      "OPENROUTER_API_KEY is missing from environment variables.",
-    );
-
   const prompt = [
     "You are an expert lexical research assistant.",
     "Provide a detailed definition, etymology, and root development for the selected word.",
@@ -303,12 +296,13 @@ async function synthesizeWithGemini(word, context, lexicalData) {
     `Authoritative lexical evidence: ${JSON.stringify(lexicalData)}`,
   ].join("\n\n");
 
-  const requestBody = JSON.stringify({
-    model: "nvidia/nemotron-3-super-120b-a12b:free",
-    messages: [{ role: "user", content: prompt }],
-  });
-
   try {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey)
+      throw new Error(
+        "OPENROUTER_API_KEY is missing from environment variables.",
+      );
+
     const result = await fetchJson(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -317,11 +311,17 @@ async function synthesizeWithGemini(word, context, lexicalData) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
         },
-        body: requestBody,
+        body: JSON.stringify({
+          model: "openrouter/free",
+          messages: [{ role: "user", content: prompt }],
+        }),
       },
     );
+    const content = result.choices?.[0]?.message?.content;
+    const text = Array.isArray(content)
+      ? content.map((part) => part.text || "").join("").trim()
+      : content?.trim();
 
-    const text = result.choices?.[0]?.message?.content?.trim();
     if (!text) throw new Error("AI returned no synthesis.");
 
     // Fallback JSON parser in case the AI wraps it in markdown blocks
@@ -347,7 +347,7 @@ function buildResponse(word, lexicalData, synthesis) {
     earliestKnownForm: lexicalData.earliestKnownForm || "Unknown",
     relatedWords: lexicalData.relatedWords,
     contextualMeaning:
-      "Contextual synthesis is unavailable until a valid server-side OpenRouter API key is configured.",
+      "Contextual synthesis is unavailable until a valid server-side AI API key is configured.",
     contextualExplanation:
       "The authoritative lookup is shown without AI interpretation.",
     sources: lexicalData.sources,
@@ -387,15 +387,20 @@ async function handleLexical(request, response) {
       synthesis = await synthesizeWithGemini(word, context, lexicalData);
     } catch (error) {
       synthesisError = "AI synthesis unavailable; authoritative data is shown.";
-      console.warn("Gemini synthesis failed:", error.message);
+      console.warn("AI synthesis failed:", error.message);
     }
 
     const value = buildResponse(word, lexicalData, synthesis);
     if (synthesisError) value.synthesisError = synthesisError;
 
     // Only cache responses with a populated definition and successful synthesis.
+    const normalizedDefinition = String(value.definition || "")
+      .trim()
+      .toLowerCase();
     const isUnknown =
-      !value.definition || value.definition.toLowerCase() === "unknown";
+      !normalizedDefinition ||
+      normalizedDefinition === "unknown" ||
+      normalizedDefinition === "uncertain";
     if (!isUnknown && !synthesisError) {
       cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
     }
