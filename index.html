@@ -1338,7 +1338,6 @@
           </div>
         </div>
       </div>
-
     </div>
 
     <script>
@@ -1690,9 +1689,7 @@
             canvasContext: context,
             viewport,
             transform:
-              outputScale !== 1
-                ? [outputScale, 0, 0, outputScale, 0, 0]
-                : null,
+              outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null,
           }).promise;
 
           surface.appendChild(canvas);
@@ -1779,12 +1776,20 @@
         if (!cleanWord) return;
 
         AppState.selectedWord = cleanWord;
-        const selectedNode = selection.getRangeAt(0).startContainer.parentElement;
+        const selectedNode =
+          selection.getRangeAt(0).startContainer.parentElement;
         const contextRoot = selectedNode?.closest(".textLayer, .page-content");
-        const fullText = (contextRoot?.innerText || contextRoot?.textContent || "").trim();
+        const fullText = (
+          contextRoot?.innerText ||
+          contextRoot?.textContent ||
+          ""
+        ).trim();
         const sentences = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
         const match = sentences.find((s) =>
-          new RegExp(`\\b${cleanWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(s),
+          new RegExp(
+            `\\b${cleanWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+            "i",
+          ).test(s),
         );
         AppState.selectedContextSentence = match
           ? match.trim()
@@ -1818,19 +1823,24 @@
 
         let data;
         try {
-          status.textContent = "Synthesizing sourced evidence and passage context...";
+          status.textContent =
+            "Synthesizing sourced evidence and passage context...";
           const response = await fetch(`${API_URL}/api/lexical`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ word, context: contextSentence }),
           });
           const payload = await response.json();
-          if (!response.ok) throw new Error(payload.error || "Lexical lookup failed.");
+          if (!response.ok)
+            throw new Error(payload.error || "Lexical lookup failed.");
           data = payload;
         } catch (error) {
-          status.textContent = "Lexical lookup unavailable. Start the local server and try again.";
-          document.getElementById("activeGeneralDefinition").textContent = error.message;
-          document.getElementById("activeLexicalSources").textContent = "No source data available.";
+          status.textContent =
+            "Lexical lookup unavailable. Start the local server and try again.";
+          document.getElementById("activeGeneralDefinition").textContent =
+            error.message;
+          document.getElementById("activeLexicalSources").textContent =
+            "No source data available.";
           return;
         }
 
@@ -1849,11 +1859,13 @@
           data.historicalDevelopment || "Unavailable or uncertain.";
         document.getElementById("activeToneRegister").textContent =
           `Confidence: ${data.confidence || "unknown"}`;
-        document.getElementById("activeLexicalSources").textContent =
-          data.sources?.length
-            ? data.sources.map((source) => source.name).join("; ")
-            : "Authoritative source unavailable.";
-        status.textContent = data.synthesisError || (data.cached ? "Loaded from lexical cache." : "Research complete.");
+        document.getElementById("activeLexicalSources").textContent = data
+          .sources?.length
+          ? data.sources.map((source) => source.name).join("; ")
+          : "Authoritative source unavailable.";
+        status.textContent =
+          data.synthesisError ||
+          (data.cached ? "Loaded from lexical cache." : "Research complete.");
 
         const fillTags = (id, arr) => {
           const el = document.getElementById(id);
@@ -1874,45 +1886,44 @@
         const badge = document.getElementById("detectedMoodTag");
         if (badge) {
           badge.classList.remove("hidden");
-          badge.textContent = "🔎 Scanning book keywords...";
+          badge.textContent = "🔎 AI Analyzing genre & theme...";
         }
 
-        let text = "";
-        if (AppState.docType === "pdf" && AppState.pdfDoc) {
-          for (let i = 1; i <= Math.min(AppState.pdfDoc.numPages, 20); i++) {
-            const content = await (
-              await AppState.pdfDoc.getPage(i)
-            ).getTextContent();
-            text += content.items.map((it) => it.str).join(" ") + " ";
+        let extractedText = "";
+
+        try {
+          if (AppState.docType === "pdf" && AppState.pdfDoc) {
+            const maxPages = Math.min(AppState.pdfDoc.numPages, 5);
+            for (let i = 1; i <= maxPages; i++) {
+              const page = await AppState.pdfDoc.getPage(i);
+              const textContent = await page.getTextContent();
+              extractedText +=
+                textContent.items.map((item) => item.str).join(" ") + " ";
+            }
+          } else {
+            extractedText = AppState.rawFullText || DEMO_PAGES.join(" ");
           }
-        } else text = AppState.rawFullText || DEMO_PAGES.join(" ");
 
-        const lower = text.toLowerCase();
-        let matchedGenre = null,
-          maxScore = 0;
-
-        Object.entries(GENRE_PROFILES).forEach(([key, profile]) => {
-          let score = 0;
-          profile.keywords.forEach((kw) => {
-            const m = lower.match(new RegExp(`\\b${kw}\\b`, "gi"));
-            if (m) score += m.length;
+          const response = await fetch(`${API_URL}/api/genre`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: extractedText.slice(0, 1500) }),
           });
-          if (score > maxScore) {
-            maxScore = score;
-            matchedGenre = profile;
+
+          const data = await response.json();
+
+          if (data.theme) {
+            applyTheme(data.theme);
+            if (badge) badge.textContent = `${data.label} Theme Active`;
+            return;
           }
-        });
-
-        if (matchedGenre && maxScore >= 3) {
-          applyTheme(matchedGenre.theme);
-          if (badge)
-            badge.textContent = `${matchedGenre.icon} Auto-detected: ${matchedGenre.label}`;
-        } else {
-          applyTheme("dark-classic");
-          if (badge) badge.textContent = `🎨 Defaulting to Classic Dark Theme`;
+        } catch (err) {
+          console.warn("Genre classification failed, using fallback:", err);
         }
-      }
 
+        applyTheme("dark-classic");
+        if (badge) badge.textContent = "🎨 Classic Dark Theme Active";
+      }
       function applyTheme(themeName) {
         AppState.theme = themeName;
 
@@ -1935,9 +1946,39 @@
       /* Initialization */
       window.addEventListener("DOMContentLoaded", async () => {
         initDOMCache();
+
+        async function loadStoredPdfIfExists() {
+          try {
+            const res = await fetch(`${API_URL}/api/pdf/current`);
+            if (!res.ok) return;
+
+            const arrayBuffer = await res.arrayBuffer();
+            const disposition = res.headers.get("Content-Disposition");
+            const fileNameMatch =
+              disposition && disposition.match(/filename="(.+?)"/);
+            const fileName = fileNameMatch
+              ? decodeURIComponent(fileNameMatch[1])
+              : "Saved Document.pdf";
+
+            document.getElementById("docTitle").textContent = `"${fileName}"`;
+            AppState.pdfDoc = await pdfjsLib.getDocument({
+              data: arrayBuffer,
+            }).promise;
+            AppState.docType = "pdf";
+            AppState.currentPage = 1;
+            AppState.totalPages = AppState.pdfDoc.numPages;
+
+            await renderCurrentSpread();
+            detectAndApplyBookTheme();
+          } catch (err) {
+            console.warn("No active stored PDF found:", err);
+          }
+        }
+
         AppState.rawFullText = DEMO_PAGES.join("\n\n");
         await repaginateCurrentDocument();
         detectAndApplyBookTheme();
+        await loadStoredPdfIfExists();
 
         // Nav Listeners
         const goNext = () => {
@@ -1990,6 +2031,18 @@
               console.log("Loading PDF...");
 
               const arrayBuffer = await file.arrayBuffer();
+
+              // Persist the PDF on the server without blocking local rendering.
+              fetch(`${API_URL}/api/pdf/upload`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/pdf",
+                  "X-File-Name": encodeURIComponent(file.name),
+                },
+                body: arrayBuffer,
+              }).catch((err) =>
+                console.warn("Failed to persist PDF to server:", err),
+              );
 
               console.log("ArrayBuffer loaded:", arrayBuffer.byteLength);
 
